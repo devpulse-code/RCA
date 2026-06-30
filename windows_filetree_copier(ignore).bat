@@ -1,0 +1,1 @@
+powershell -command "$root = (Get-Location).Path; $folder = Split-Path $root -Leaf; Get-ChildItem -Recurse | ForEach-Object { $folder + '\' + $_.FullName.Substring($root.Length + 1) } | clip" & exit

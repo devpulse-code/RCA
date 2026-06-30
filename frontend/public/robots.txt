@@ -1,0 +1,5 @@
+# D:\Development\Website\rca-platform\frontend\public\robots.txt
+User-agent: *
+Disallow: /api/
+
+# end of D:\Development\Website\rca-platform\frontend\public\robots.txt

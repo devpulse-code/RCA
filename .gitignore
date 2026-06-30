@@ -1,0 +1,29 @@
+# D:\Development\Website\rca-platform\.gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.env
+
+# Node
+node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# end of D:\Development\Website\rca-platform\.gitignore

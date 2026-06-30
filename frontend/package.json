@@ -1,0 +1,18 @@
+# D:\Development\Website\rca-platform\frontend\package.json
+{
+  "name": "rca-frontend",
+  "version": "0.1.0",
+  "description": "Frontend for RCA DDM",
+  "private": true,
+  "scripts": {
+    "build:tailwind": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/styles.css --minify",
+    "build:static": "mkdir -p dist && cp -r public/* dist/ && cp -r src/pages dist/ && cp src/index.html dist/",
+    "build": "npm run build:tailwind && npm run build:static",
+    "dev": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
+
+# end of D:\Development\Website\rca-platform\frontend\package.json

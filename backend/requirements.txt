@@ -1,0 +1,16 @@
+# RCA/backend/requirements.txt
+fastapi>=0.100.0
+uvicorn[standard]
+pydantic-settings
+sqlalchemy[asyncio]
+asyncpg
+alembic
+bcrypt
+cryptography
+meilisearch
+httpx
+redis
+apscheduler
+pyotp
+python-multipart
+# end of RCA/backend/requirements.txt

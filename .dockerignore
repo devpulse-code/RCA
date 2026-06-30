@@ -1,0 +1,18 @@
+# D:\Development\Website\rca-platform\.dockerignore
+.git
+.gitignore
+.env
+*.md
+.vscode
+docker-compose*.yml
+Makefile
+FileTree*
+node_modules
+frontend/node_modules
+frontend/dist
+__pycache__
+*.pyc
+.venv
+venv
+
+# end of D:\Development\Website\rca-platform\.dockerignore
