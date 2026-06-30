@@ -1,4 +1,5 @@
-# RCA/docker-compose.yml (updated)
+# RCA/docker-compose.yml
+# RCA/docker-compose.yml
 services:
   nginx:
     build:
@@ -15,6 +16,15 @@ services:
     networks:
       - ddm_network
     read_only: true
+    tmpfs:
+      - /var/run
+      - /tmp
+      - /var/cache/nginx
+      - /var/log/nginx
+    restart: unless-stopped
+
+  # … rest of services remain exactly as before
+# end of RCA/docker-compose.yml
 
   backend:
     build:
@@ -22,7 +32,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       target: development
     volumes:
-      - ./backend/src:/app/backend/src:ro   # source code read-only
+      - ./backend/src:/app/backend/src:ro
       - ddm_uploads:/app/uploads
     env_file:
       - .env
@@ -35,7 +45,7 @@ services:
         condition: service_healthy
     networks:
       - ddm_network
-    read_only: false   # needs to write pyc files, etc. Not fully read-only
+    read_only: false
     tmpfs:
       - /tmp
     healthcheck:
