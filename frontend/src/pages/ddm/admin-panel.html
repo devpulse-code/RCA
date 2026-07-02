@@ -10,7 +10,7 @@
 <body class="bg-gray-100">
     <div id="error-banner" class="hidden bg-red-600 text-white p-3 text-center"></div>
     <div class="flex min-h-screen">
-        <!-- Sidebar (unchanged) -->
+        <!-- Sidebar -->
         <aside class="w-64 bg-gray-800 text-white p-6">
             <h2 class="text-xl font-bold mb-6">Admin Panel</h2>
             <nav class="space-y-2" id="sidebar-nav">
@@ -24,6 +24,7 @@
                 <button id="logout-btn" class="mt-4 w-full bg-red-600 py-2 px-3 rounded hover:bg-red-700">Logout</button>
             </nav>
         </aside>
+        <!-- Main content -->
         <main class="flex-1 p-8">
             <h1 class="text-2xl font-bold mb-6" id="section-title">User Management</h1>
             <div id="section-content"></div>
@@ -31,14 +32,12 @@
     </div>
 
     <script type="module">
-        // Immediately show an error banner if anything fails to load
         window.onerror = function(msg, url, line) {
             const banner = document.getElementById("error-banner");
             banner.textContent = `Module load error: ${msg} (${url}:${line})`;
             banner.classList.remove("hidden");
         };
 
-        // Dynamically import components with error fallback
         async function loadModules() {
             try {
                 const { UserTable } = await import("../../components/ddm/admin/user-table.js");
@@ -49,7 +48,7 @@
                 const { SettingsPanel } = await import("../../components/ddm/admin/settings-panel.js");
                 const { showToast } = await import("../../components/ui/toast.js");
 
-                // Session check
+                // Session verification
                 async function verifySession() {
                     try {
                         const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
@@ -64,7 +63,7 @@
                 const authenticated = await verifySession();
                 if (!authenticated) return;
 
-                // Setup tab loading
+                // Tab loading
                 const titleEl = document.getElementById("section-title");
                 const contentEl = document.getElementById("section-content");
                 const sectionTitles = {
@@ -76,12 +75,12 @@
 
                 function createComponent(section) {
                     switch (section) {
-                        case "users": return new UserTable();
-                        case "files": return new FileTable();
-                        case "upload-queue": return new UploadQueue();
-                        case "announcements": return new AnnouncementTable();
-                        case "audit-log": return new AuditLogViewer();
-                        case "settings": return new SettingsPanel();
+                        case "users": return new UserTable("section-content");
+                        case "files": return new FileTable("section-content");
+                        case "upload-queue": return new UploadQueue("section-content");
+                        case "announcements": return new AnnouncementTable("section-content");
+                        case "audit-log": return new AuditLogViewer("section-content");
+                        case "settings": return new SettingsPanel("section-content");
                         case "groups": return {
                             render(container) {
                                 container.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
@@ -122,7 +121,6 @@
                     window.location.href = "/pages/ddm/admin-login.html";
                 });
             } catch (err) {
-                // Show error banner if any of the imports fail
                 const banner = document.getElementById("error-banner");
                 banner.textContent = `Failed to load modules: ${err.message}`;
                 banner.classList.remove("hidden");

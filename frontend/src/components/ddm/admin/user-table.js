@@ -1,7 +1,7 @@
 // RCA/frontend/src/components/ddm/admin/user-table.js
-import * as AdminService from "../../services/ddm/admin-service.js";
-import { showToast } from "../ui/toast.js";
-import { openModal } from "../ui/modal.js";
+import * as AdminService from "../../../services/ddm/admin-service.js";
+import { showToast } from "../../../ui/toast.js";
+import { openModal } from "../../../ui/modal.js";
 
 export class UserTable {
   constructor(containerId) {
@@ -133,7 +133,7 @@ export class UserTable {
     try {
       const results = await AdminService.bulkRevokePasscodes(ids);
       let msg = results.map(r => `ID ${r.user_id}: ${r.passcode}`).join("\n");
-      alert("New passcodes:\n" + msg); // simple display, could use modal
+      alert("New passcodes:\n" + msg);
       showToast("Passcodes revoked", "success");
       this.load();
     } catch (e) {

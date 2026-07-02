@@ -1,6 +1,6 @@
 // RCA/frontend/src/components/ddm/admin/upload-queue.js
-import * as AdminService from "../../services/ddm/admin-service.js";
-import { showToast } from "../ui/toast.js";
+import * as AdminService from "../../../services/ddm/admin-service.js";
+import { showToast } from "../../../ui/toast.js";
 
 export class UploadQueue {
   constructor(containerId) {

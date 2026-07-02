@@ -1,6 +1,6 @@
 // RCA/frontend/src/components/ddm/admin/file-table.js
-import * as AdminService from "../../services/ddm/admin-service.js";
-import { showToast } from "../../ui/toast.js";
+import * as AdminService from "../../../services/ddm/admin-service.js";
+import { showToast } from "../../../ui/toast.js";
 
 export class FileTable {
   constructor(containerId) {
