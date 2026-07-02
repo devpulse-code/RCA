@@ -1,4 +1,5 @@
 # RCA/backend/src/modules/ddm/api/admin/files.py
+import json
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File as FastAPIFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -9,13 +10,14 @@ from backend.src.modules.ddm.models.file import File
 from backend.src.modules.ddm.schemas.file import FileOut
 from backend.src.modules.ddm.services.file_service import (
     delete_file,
+    create_file,                     # new import
     update_file_record,
     replace_file_content,
 )
 from backend.src.modules.ddm.services.audit_service import log_audit
+from backend.src.config.settings import settings
 
 router = APIRouter(tags=["admin-files"])
-
 
 @router.get("/", response_model=List[FileOut])
 async def list_files(
@@ -42,6 +44,45 @@ async def list_files(
         ))
     return out
 
+@router.post("/", response_model=FileOut, status_code=201)
+async def upload_file(
+    name: str = Form(...),
+    description: str = Form(""),
+    storage_type: str = Form(...),
+    groups: str = Form("[]"),
+    file: Optional[UploadFile] = FastAPIFile(None),
+    terabox_url: Optional[str] = Form(None),
+    request: Request = None,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
+    try:
+        group_ids_raw = json.loads(groups)
+        # Ensure all IDs are integers
+        group_ids = [int(x) for x in group_ids_raw]
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid groups format – must be a JSON list of integers")
+    if not isinstance(group_ids, list):
+        raise HTTPException(status_code=400, detail="groups must be a JSON list")
+
+    # Upload size limit for local files
+    if storage_type == "local" and file:
+        limit_mb = int(settings.ddm_admin_upload_limit_mb) if hasattr(settings, "ddm_admin_upload_limit_mb") else 500
+        if file.size and file.size > limit_mb * 1024 * 1024:
+            raise HTTPException(status_code=413, detail=f"File too large. Maximum {limit_mb} MB.")
+
+    new_file = await create_file(
+        db,
+        name=name,
+        description=description,
+        storage_type=storage_type,
+        group_ids=group_ids,
+        uploader_id=admin.id,
+        uploader_type="admin",
+        file=file,
+        terabox_url=terabox_url,
+        ip_address=request.client.host if request else None,
+    )
 
 @router.delete("/{file_id}", status_code=204)
 async def delete_file_endpoint(
@@ -60,7 +101,6 @@ async def delete_file_endpoint(
         ip_address=request.client.host,
     )
     return
-
 
 @router.delete("/bulk", status_code=204)
 async def bulk_delete_files(
@@ -81,7 +121,6 @@ async def bulk_delete_files(
     )
     return
 
-
 @router.put("/{file_id}/groups")
 async def change_file_groups(
     file_id: int,
@@ -90,7 +129,6 @@ async def change_file_groups(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    """Replace the groups associated with a file."""
     from backend.src.modules.ddm.models.group import Group
     result = await db.execute(select(Group).where(Group.id.in_(group_ids)))
     groups = result.scalars().all()
@@ -112,7 +150,6 @@ async def change_file_groups(
     )
     return {"message": "Groups updated"}
 
-
 @router.put("/{file_id}/content")
 async def replace_file(
     file_id: int,
@@ -123,7 +160,6 @@ async def replace_file(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    """Replace the content of a file (re-upload)."""
     file_record = await replace_file_content(
         db, file_id,
         storage_type=storage_type,

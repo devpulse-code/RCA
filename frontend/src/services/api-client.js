@@ -1,7 +1,6 @@
 // RCA/frontend/src/services/api-client.js
 const API_BASE = '/api';
 
-// Helper to parse response and extract error messages
 async function handleResponse(response) {
     if (!response.ok) {
         let errorMsg = `HTTP error ${response.status}`;
@@ -11,12 +10,10 @@ async function handleResponse(response) {
         } catch (_) {}
         throw new Error(errorMsg);
     }
-    // 204 No Content → return null
     if (response.status === 204) return null;
     return response.json();
 }
 
-// Individual functions (may still be used directly)
 export async function apiGet(endpoint, params = {}) {
     const url = new URL(`${API_BASE}${endpoint}`, window.location.origin);
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
@@ -44,6 +41,16 @@ export async function apiPut(endpoint, data) {
     return handleResponse(response);
 }
 
+export async function apiPatch(endpoint, data) {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
 export async function apiDelete(endpoint, data) {
     const options = {
         method: 'DELETE',
@@ -59,12 +66,11 @@ export async function apiUpload(endpoint, formData) {
     const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         credentials: 'include',
-        body: formData, // browser sets Content-Type automatically
+        body: formData,
     });
     return handleResponse(response);
 }
 
-// Unified client object that matches the usage in services
 export const apiClient = {
     get: async (url, config = {}) => {
         const params = config.params || {};
@@ -85,6 +91,15 @@ export const apiClient = {
     put: async (url, data) => {
         const response = await fetch(`${API_BASE}${url}`, {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data),
+        });
+        return handleResponse(response);
+    },
+    patch: async (url, data) => {
+        const response = await fetch(`${API_BASE}${url}`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify(data),

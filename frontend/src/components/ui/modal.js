@@ -14,9 +14,12 @@ export function openModal(content, onOpen) {
   `;
   document.body.appendChild(modal);
 
-  modal.querySelector("#modal-close").addEventListener("click", () => modal.remove());
+  // Add a close method to the element so callers can do modal.close()
+  modal.close = () => modal.remove();
+
+  modal.querySelector("#modal-close").addEventListener("click", () => modal.close());
   modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) modal.close();
   });
 
   if (onOpen) onOpen(modal);

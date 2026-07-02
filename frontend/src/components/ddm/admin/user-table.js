@@ -15,7 +15,8 @@ export class UserTable {
 
   async load() {
     try {
-      this.users = await AdminService.fetchUsers();
+      // Use getUsers (not fetchUsers) as defined in admin-service.js
+      this.users = await AdminService.getUsers();
       this.groups = await AdminService.fetchGroups();
       this.render();
     } catch (e) {

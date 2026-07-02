@@ -21,7 +21,6 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    # Eagerly load groups to avoid lazy-loading issue
     result = await db.execute(select(User).options(selectinload(User.groups)))
     users = result.scalars().all()
     out = []
@@ -47,7 +46,6 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    # Resolve groups
     groups = []
     for name in payload.groups:
         result = await db.execute(select(Group).where(Group.name == name))
@@ -59,7 +57,7 @@ async def create_user(
     user = User(
         name=payload.name,
         contact=payload.contact,
-        encrypted_passcode="placeholder",  # will be overwritten
+        encrypted_passcode="placeholder",
         groups=groups,
     )
     db.add(user)
@@ -111,10 +109,15 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    user = await db.get(User, user_id)
+    # 1. Fetch user with eagerly loaded groups (so we can modify without lazy loads)
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(selectinload(User.groups))
+    )
+    user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # 2. Apply changes
     if payload.name is not None:
         user.name = payload.name
     if payload.contact is not None:
@@ -129,15 +132,16 @@ async def update_user(
             groups.append(group)
         user.groups = groups
 
+    # 3. Commit changes
     await db.commit()
-    # Refetch with eager loading to get groups for response
-    await db.refresh(user, attribute_names=["groups"])  # not enough; we'll re-query
-    # Re-query with selectinload to build response
+
+    # 4. Re-query a fresh object with eager loaded groups (safe to build response)
     result = await db.execute(
         select(User).where(User.id == user_id).options(selectinload(User.groups))
     )
-    user = result.scalar_one()
+    updated_user = result.scalar_one()
 
+    # 5. Audit log (safe, no lazy loads needed)
     await log_audit(
         db,
         action="user_updated",
@@ -148,14 +152,15 @@ async def update_user(
         ip_address=request.client.host,
     )
 
+    # 6. Build and return the response
     return UserOut(
-        id=user.id,
-        name=user.name,
-        contact=user.contact,
-        groups=[g.name for g in user.groups],
-        passcode_active=user.passcode_active,
-        created_at=str(user.created_at),
-        updated_at=str(user.updated_at),
+        id=updated_user.id,
+        name=updated_user.name,
+        contact=updated_user.contact,
+        groups=[g.name for g in updated_user.groups],
+        passcode_active=updated_user.passcode_active,
+        created_at=str(updated_user.created_at),
+        updated_at=str(updated_user.updated_at),
     )
 
 

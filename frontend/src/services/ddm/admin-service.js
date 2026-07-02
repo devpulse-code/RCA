@@ -9,7 +9,7 @@ export async function createUser(data) {
   return apiClient.post("/ddm/admin/users/", data);
 }
 export async function updateUser(id, data) {
-  return apiClient.put(`/ddm/admin/users/${id}`, data);
+  return apiClient.patch(`/ddm/admin/users/${id}`, data);
 }
 export async function deleteUser(id) {
   await apiClient.delete(`/ddm/admin/users/${id}`);
@@ -35,6 +35,22 @@ export async function deleteFile(id) {
 }
 export async function bulkDeleteFiles(ids) {
   await apiClient.delete("/ddm/admin/bulk", { data: ids });
+}
+export async function uploadFile(formData) {
+  const response = await fetch('/api/ddm/admin/', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  if (!response.ok) {
+    let msg = `Upload failed (${response.status})`;
+    try {
+      const err = await response.json();
+      msg = err.detail || err.message || msg;
+    } catch (_) {}
+    throw new Error(msg);
+  }
+  return response.json();
 }
 
 // Upload requests
