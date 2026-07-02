@@ -11,22 +11,75 @@
     <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
         <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h1>
         <form id="admin-login-form" class="space-y-4">
-            <div>
-                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                <input type="text" id="username" name="username" required
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <div id="step-username-password">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" name="username" required
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" required
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
             </div>
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" id="password" name="password" required
+            <div id="step-totp" class="hidden mb-4">
+                <label for="totp" class="block text-sm font-medium text-gray-700">TOTP Code</label>
+                <input type="text" id="totp" name="totp" placeholder="6-digit code"
                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <p class="text-xs text-gray-500 mt-1">If you don't have TOTP, click "Sign In" without code.</p>
             </div>
-            <button type="submit" class="w-full bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-900">
+            <button type="submit" class="w-full bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-900 disabled:opacity-50"
+                    id="submit-btn">
                 Sign In
             </button>
         </form>
         <p id="error-message" class="text-red-500 text-sm mt-3 hidden"></p>
     </div>
+
+    <script type="module">
+        import { adminLogin } from '/services/ddm/auth-service.js';
+
+        const form = document.getElementById('admin-login-form');
+        const errorEl = document.getElementById('error-message');
+        const submitBtn = document.getElementById('submit-btn');
+        const stepUserPass = document.getElementById('step-username-password');
+        const stepTotp = document.getElementById('step-totp');
+        const totpInput = document.getElementById('totp');
+
+        let loginStage = 'password'; // 'password' or 'totp'
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in…';
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const totp = totpInput.value.trim();
+
+            try {
+                await adminLogin(username, password, totp || undefined);
+                window.location.href = '/pages/ddm/admin-panel.html';
+            } catch (err) {
+                if (err.message.includes('TOTP required') || err.message.includes('2FA')) {
+                    // Switch to TOTP stage
+                    stepUserPass.classList.add('hidden');
+                    stepTotp.classList.remove('hidden');
+                    errorEl.textContent = 'Please enter your TOTP code.';
+                    errorEl.classList.remove('hidden');
+                    loginStage = 'totp';
+                } else {
+                    errorEl.textContent = err.message;
+                    errorEl.classList.remove('hidden');
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
 </body>
 </html>
 <!-- end of RCA/frontend/src/pages/ddm/admin-login.html -->

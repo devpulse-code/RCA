@@ -8,8 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
+    <div id="error-banner" class="hidden bg-red-600 text-white p-3 text-center"></div>
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
+        <!-- Sidebar (unchanged) -->
         <aside class="w-64 bg-gray-800 text-white p-6">
             <h2 class="text-xl font-bold mb-6">Admin Panel</h2>
             <nav class="space-y-2" id="sidebar-nav">
@@ -23,66 +24,113 @@
                 <button id="logout-btn" class="mt-4 w-full bg-red-600 py-2 px-3 rounded hover:bg-red-700">Logout</button>
             </nav>
         </aside>
-        <!-- Main content -->
-        <main class="flex-1 p-8" id="main-content">
-            <h1 class="text-2xl font-bold mb-6">User Management</h1>
-            <div id="users-table-container"></div>
+        <main class="flex-1 p-8">
+            <h1 class="text-2xl font-bold mb-6" id="section-title">User Management</h1>
+            <div id="section-content"></div>
         </main>
     </div>
+
     <script type="module">
-        import { UserTable } from "../../components/ddm/admin/user-table.js";
-        import { FileTable } from "../../components/ddm/admin/file-table.js";
-        import { UploadQueue } from "../../components/ddm/admin/upload-queue.js";
-        import { AnnouncementTable } from "../../components/ddm/admin/announcement-table.js";
-        import AuditLogViewer from "../../components/ddm/admin/audit-log-viewer.js";
-        import { SettingsPanel } from "../../components/ddm/admin/settings-panel.js";
-        import { showToast } from "../../components/ui/toast.js";
+        // Immediately show an error banner if anything fails to load
+        window.onerror = function(msg, url, line) {
+            const banner = document.getElementById("error-banner");
+            banner.textContent = `Module load error: ${msg} (${url}:${line})`;
+            banner.classList.remove("hidden");
+        };
 
-        const contentDiv = document.getElementById("main-content");
-        let currentComponent = null;
+        // Dynamically import components with error fallback
+        async function loadModules() {
+            try {
+                const { UserTable } = await import("../../components/ddm/admin/user-table.js");
+                const { FileTable } = await import("../../components/ddm/admin/file-table.js");
+                const { UploadQueue } = await import("../../components/ddm/admin/upload-queue.js");
+                const { AnnouncementTable } = await import("../../components/ddm/admin/announcement-table.js");
+                const AuditLogViewer = (await import("../../components/ddm/admin/audit-log-viewer.js")).default;
+                const { SettingsPanel } = await import("../../components/ddm/admin/settings-panel.js");
+                const { showToast } = await import("../../components/ui/toast.js");
 
-        function loadSection(section) {
-            // Clear main content
-            contentDiv.innerHTML = "";
-            if (section === "users") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">User Management</h1><div id="users-table-container"></div>`;
-                currentComponent = new UserTable("users-table-container");
-            } else if (section === "groups") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">Groups</h1><p>Group management coming soon.</p>`;
-            } else if (section === "files") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">File Management</h1><div id="files-table-container"></div>`;
-                currentComponent = new FileTable("files-table-container");
-            } else if (section === "upload-queue") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">Upload Queue</h1><div id="upload-queue-container"></div>`;
-                currentComponent = new UploadQueue("upload-queue-container");
-            } else if (section === "announcements") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">Announcements</h1><div id="announcements-table-container"></div>`;
-                currentComponent = new AnnouncementTable("announcements-table-container");
-            } else if (section === "audit-log") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">Audit Log</h1><div id="audit-log-container"></div>`;
-                currentComponent = new AuditLogViewer("audit-log-container");
-            } else if (section === "settings") {
-                contentDiv.innerHTML = `<h1 class="text-2xl font-bold mb-6">Settings</h1><div id="settings-container"></div>`;
-                currentComponent = new SettingsPanel("settings-container");
+                // Session check
+                async function verifySession() {
+                    try {
+                        const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
+                        if (!res.ok) throw new Error('Not authenticated');
+                    } catch {
+                        window.location.href = '/pages/ddm/admin-login.html';
+                        return false;
+                    }
+                    return true;
+                }
+
+                const authenticated = await verifySession();
+                if (!authenticated) return;
+
+                // Setup tab loading
+                const titleEl = document.getElementById("section-title");
+                const contentEl = document.getElementById("section-content");
+                const sectionTitles = {
+                    users: "User Management", groups: "Group Management",
+                    files: "File Management", "upload-queue": "Upload Request Queue",
+                    announcements: "Announcement Management", "audit-log": "Audit Log",
+                    settings: "System Settings"
+                };
+
+                function createComponent(section) {
+                    switch (section) {
+                        case "users": return new UserTable();
+                        case "files": return new FileTable();
+                        case "upload-queue": return new UploadQueue();
+                        case "announcements": return new AnnouncementTable();
+                        case "audit-log": return new AuditLogViewer();
+                        case "settings": return new SettingsPanel();
+                        case "groups": return {
+                            render(container) {
+                                container.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
+                            }
+                        };
+                        default: return null;
+                    }
+                }
+
+                function loadSection(section) {
+                    document.querySelectorAll("[data-section]").forEach(link => {
+                        link.classList.toggle("bg-gray-700", link.dataset.section === section);
+                    });
+                    titleEl.textContent = sectionTitles[section] || section;
+                    contentEl.innerHTML = "";
+                    const comp = createComponent(section);
+                    if (comp && typeof comp.render === "function") {
+                        comp.render(contentEl);
+                    } else {
+                        contentEl.innerHTML = `<p class="text-red-500">Component not available.</p>`;
+                    }
+                }
+
+                document.querySelectorAll("[data-section]").forEach(link => {
+                    link.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const section = link.dataset.section;
+                        window.location.hash = section;
+                        loadSection(section);
+                    });
+                });
+
+                const initialSection = window.location.hash.replace("#", "") || "users";
+                loadSection(initialSection);
+
+                document.getElementById("logout-btn").addEventListener("click", () => {
+                    document.cookie = "admin_session=; Max-Age=0; path=/";
+                    window.location.href = "/pages/ddm/admin-login.html";
+                });
+            } catch (err) {
+                // Show error banner if any of the imports fail
+                const banner = document.getElementById("error-banner");
+                banner.textContent = `Failed to load modules: ${err.message}`;
+                banner.classList.remove("hidden");
+                console.error(err);
             }
         }
 
-        document.querySelectorAll("[data-section]").forEach(link => {
-            link.addEventListener("click", (e) => {
-                e.preventDefault();
-                const section = link.dataset.section;
-                window.location.hash = section;
-                loadSection(section);
-            });
-        });
-
-        const initial = window.location.hash.replace("#", "") || "users";
-        loadSection(initial);
-
-        document.getElementById("logout-btn").addEventListener("click", () => {
-            document.cookie = "admin_session=; Max-Age=0; path=/";
-            window.location.href = "/pages/ddm/admin-login.html";
-        });
+        loadModules();
     </script>
 </body>
 </html>

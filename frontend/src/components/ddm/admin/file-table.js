@@ -1,5 +1,5 @@
 // RCA/frontend/src/components/ddm/admin/file-table.js
-import * as FileService from "../../../services/ddm/file-service.js";
+import * as AdminService from "../../services/ddm/admin-service.js";
 import { showToast } from "../../ui/toast.js";
 
 export class FileTable {
@@ -12,7 +12,7 @@ export class FileTable {
 
   async load() {
     try {
-      this.files = await FileService.fetchFiles();
+      this.files = await AdminService.getFiles();
       this.render();
     } catch (e) {
       showToast(e.message, "error");
@@ -46,7 +46,7 @@ export class FileTable {
               <td><input type="checkbox" class="file-checkbox" value="${f.id}"></td>
               <td>${f.name}</td>
               <td>${f.storage_type}</td>
-              <td>${f.groups.join(', ')}</td>
+              <td>${(f.groups || []).join(', ')}</td>
               <td>${f.size ? (f.size/1024).toFixed(1)+' KB' : ''}</td>
               <td>${f.status}</td>
               <td>
@@ -71,19 +71,27 @@ export class FileTable {
       btn.addEventListener("click", async () => {
         const id = parseInt(btn.dataset.id);
         if (confirm("Delete this file?")) {
-          await FileService.deleteFile(id);
-          showToast("File deleted", "success");
-          this.load();
+          try {
+            await AdminService.deleteFile(id);
+            showToast("File deleted", "success");
+            this.load();
+          } catch (e) {
+            showToast(e.message, "error");
+          }
         }
       });
     });
     document.getElementById("btn-bulk-delete")?.addEventListener("click", async () => {
       const ids = Array.from(this.selected);
       if (ids.length && confirm(`Delete ${ids.length} files?`)) {
-        await FileService.bulkDeleteFiles(ids);
-        showToast("Files deleted", "success");
-        this.selected.clear();
-        this.load();
+        try {
+          await AdminService.bulkDeleteFiles(ids);
+          showToast("Files deleted", "success");
+          this.selected.clear();
+          this.load();
+        } catch (e) {
+          showToast(e.message, "error");
+        }
       }
     });
   }
