@@ -4,6 +4,7 @@ import io
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.models.user import User
 from backend.src.modules.ddm.models.group import Group
@@ -20,7 +21,8 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    result = await db.execute(select(User))
+    # Eagerly load groups to avoid lazy-loading issue
+    result = await db.execute(select(User).options(selectinload(User.groups)))
     users = result.scalars().all()
     out = []
     for u in users:
@@ -84,7 +86,10 @@ async def get_user(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    user = await db.get(User, user_id)
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(selectinload(User.groups))
+    )
+    user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return UserOut(
@@ -125,7 +130,13 @@ async def update_user(
         user.groups = groups
 
     await db.commit()
-    await db.refresh(user)
+    # Refetch with eager loading to get groups for response
+    await db.refresh(user, attribute_names=["groups"])  # not enough; we'll re-query
+    # Re-query with selectinload to build response
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(selectinload(User.groups))
+    )
+    user = result.scalar_one()
 
     await log_audit(
         db,

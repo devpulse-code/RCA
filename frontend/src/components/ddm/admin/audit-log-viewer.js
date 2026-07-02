@@ -1,6 +1,6 @@
 // RCA/frontend/src/components/ddm/admin/audit-log-viewer.js
-import * as AdminService from "../../services/ddm/admin-service.js";
-import { showToast } from "../ui/toast.js";
+import * as AdminService from "../../../services/ddm/admin-service.js";
+import { showToast } from "../../ui/toast.js";
 
 export default class AuditLogViewer {
   constructor(containerId) {
@@ -36,14 +36,18 @@ export default class AuditLogViewer {
   }
 
   async load(page = this.page) {
-    const params = {
-      page,
-      per_page: this.perPage,
-      date_from: document.getElementById("filter-date-from")?.value || undefined,
-      date_to: document.getElementById("filter-date-to")?.value || undefined,
-      admin_filter: document.getElementById("filter-admin")?.value || undefined,
-      action_filter: document.getElementById("filter-action")?.value || undefined,
-    };
+    // Collect filter values, skip empty strings to avoid sending "undefined"
+    const dateFrom = document.getElementById("filter-date-from")?.value.trim();
+    const dateTo = document.getElementById("filter-date-to")?.value.trim();
+    const adminFilter = document.getElementById("filter-admin")?.value.trim();
+    const actionFilter = document.getElementById("filter-action")?.value.trim();
+
+    const params = { page, per_page: this.perPage };
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    if (adminFilter) params.admin_filter = adminFilter;
+    if (actionFilter) params.action_filter = actionFilter;
+
     try {
       const data = await AdminService.fetchAuditLogs(params);
       this.logs = data.items;

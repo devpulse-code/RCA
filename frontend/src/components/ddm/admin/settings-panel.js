@@ -1,16 +1,18 @@
 // RCA/frontend/src/components/ddm/admin/settings-panel.js
-import * as AdminService from "../../services/ddm/admin-service.js";
-import { showToast } from "../ui/toast.js";
+import * as AdminService from "../../../services/ddm/admin-service.js";
+import { showToast } from "../../ui/toast.js";
 
 export class SettingsPanel {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
+    this.settings = null;   // null = not loaded yet
     this.load();
   }
 
   async load() {
     try {
-      this.settings = await AdminService.fetchSettings();
+      const data = await AdminService.fetchSettings();
+      this.settings = (data && typeof data === 'object' && !Array.isArray(data)) ? data : {};
     } catch (e) {
       showToast("Failed to load settings", "error");
       this.settings = {};
@@ -20,6 +22,13 @@ export class SettingsPanel {
 
   render() {
     if (!this.container) return;
+
+    // If settings haven't loaded yet, show a loading indicator
+    if (!this.settings) {
+      this.container.innerHTML = '<p class="text-gray-500">Loading settings...</p>';
+      return;
+    }
+
     const s = this.settings;
     this.container.innerHTML = `
       <h2 class="text-xl font-semibold mb-4">System Settings</h2>

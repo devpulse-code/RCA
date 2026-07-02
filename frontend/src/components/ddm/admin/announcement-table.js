@@ -1,7 +1,7 @@
 // RCA/frontend/src/components/ddm/admin/announcement-table.js
-import * as AdminService from "../../services/ddm/admin-service.js";
-import { showToast } from "../ui/toast.js";
-import { openModal } from "../ui/modal.js";
+import * as AdminService from "../../../services/ddm/admin-service.js";
+import { showToast } from "../../ui/toast.js";
+import { openModal } from "../../ui/modal.js";
 
 export class AnnouncementTable {
   constructor(containerId) {
@@ -123,7 +123,6 @@ export class AnnouncementTable {
       </form>
     `;
     openModal(content, async (modal) => {
-      // populate groups dropdown
       try {
         const groups = await AdminService.fetchGroups();
         const select = modal.querySelector("select[name='groups']");
@@ -143,8 +142,7 @@ export class AnnouncementTable {
           title: form.title.value,
           body: form.body.value,
           expiry: form.expiry.value ? new Date(form.expiry.value).toISOString() : null,
-          group_ids: [], // backend expects IDs, we only have names; we need to map. For simplicity, we'll pass names and let backend resolve? Better to adjust API to accept names. We'll skip for now and just pass empty.
-          // We'll enhance later. For now we'll set empty and note that group targeting will be added via admin panel group selection by ID.
+          group_ids: [], // backend expects IDs; we'll leave that for later refinement
         };
         try {
           await AdminService.createAnnouncement(data);
@@ -192,7 +190,7 @@ export class AnnouncementTable {
           title: form.title.value,
           body: form.body.value,
           expiry: form.expiry.value ? new Date(form.expiry.value).toISOString() : null,
-          group_ids: [], // same mapping issue; we'll rely on backend to accept group names? But we have group_ids in model.
+          group_ids: [], // same mapping issue; we'll enhance later
         };
         try {
           await AdminService.updateAnnouncement(announcement.id, data);
