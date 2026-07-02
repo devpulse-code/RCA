@@ -1,7 +1,7 @@
 // RCA/frontend/src/components/ddm/admin/user-table.js
 import * as AdminService from "../../../services/ddm/admin-service.js";
-import { showToast } from "../../../ui/toast.js";
-import { openModal } from "../../../ui/modal.js";
+import { showToast } from "../../ui/toast.js";
+import { openModal } from "../../ui/modal.js";
 
 export class UserTable {
   constructor(containerId) {
