@@ -10,9 +10,11 @@ from contextlib import asynccontextmanager
 from backend.src.core.db.database import engine, async_session
 from backend.src.core.models.base import Base
 from backend.src.core.db.seed import seed
+from backend.src.core.db.redis import redis_client
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import text
+import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
@@ -44,14 +46,33 @@ async def purge_old_audit_logs():
         logger.error(f"Audit log purge failed: {e}")
 
 
+async def wait_for_redis(retries=10, delay=1):
+    """Ping Redis until it responds or retries exhausted."""
+    for attempt in range(1, retries + 1):
+        try:
+            await redis_client.ping()
+            logger.info("Redis connection established")
+            return
+        except Exception as e:
+            logger.warning(f"Redis ping attempt {attempt}/{retries} failed: {e}")
+            if attempt == retries:
+                raise RuntimeError("Could not connect to Redis after multiple attempts") from e
+            await asyncio.sleep(delay)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Create database tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed()
 
+    # Verify database connectivity
     async with engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
+
+    # Wait for Redis to be ready before accepting requests
+    await wait_for_redis()
 
     scheduler.add_job(purge_old_audit_logs, CronTrigger(hour=3, minute=0), id="audit_purge")
     scheduler.start()

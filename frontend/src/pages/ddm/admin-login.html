@@ -1,164 +1,150 @@
-<!-- RCA/frontend/src/pages/ddm/admin-panel.html -->
+<!-- RCA/frontend/src/pages/ddm/admin-login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDM - Admin Panel</title>
+    <title>DDM Admin - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-    <div id="error-banner" class="hidden bg-red-600 text-white p-3 text-center"></div>
-    <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-gray-800 text-white p-6">
-            <h2 class="text-xl font-bold mb-6">Admin Panel</h2>
-            <nav class="space-y-2" id="sidebar-nav">
-                <a href="#users" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="users">Users</a>
-                <a href="#groups" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="groups">Groups</a>
-                <a href="#files" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="files">Files</a>
-                <a href="#upload-queue" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="upload-queue">Upload Queue</a>
-                <a href="#announcements" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="announcements">Announcements</a>
-                <a href="#audit-log" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="audit-log">Audit Log</a>
-                <a href="#settings" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="settings">Settings</a>
-                <button id="logout-btn" class="mt-4 w-full bg-red-600 py-2 px-3 rounded hover:bg-red-700">Logout</button>
-            </nav>
-        </aside>
-        <!-- Main content -->
-        <main class="flex-1 p-8">
-            <h1 class="text-2xl font-bold mb-6" id="section-title">Loading...</h1>
-            <div id="section-content" class="text-gray-500">Checking authentication…</div>
-        </main>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md bg-white p-8 rounded shadow-lg">
+        <h1 class="text-2xl font-bold mb-6 text-center">Admin Login</h1>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Username</label>
+                <input type="text" id="username" class="w-full border rounded px-3 py-2" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Password</label>
+                <input type="password" id="password" class="w-full border rounded px-3 py-2" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+        </form>
+        <!-- 2FA and recovery code prompts (hidden initially) -->
+        <div id="totp-prompt" class="hidden mt-6 space-y-4">
+            <p class="text-sm text-gray-600">Enter the 6‑digit code from your authenticator app.</p>
+            <input type="text" id="totp-code" class="w-full border rounded px-3 py-2" placeholder="000000">
+            <button id="totp-submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Verify</button>
+        </div>
+        <div id="recovery-prompt" class="hidden mt-6 space-y-4">
+            <p class="text-sm text-gray-600">Enter one of your recovery codes.</p>
+            <input type="text" id="recovery-code" class="w-full border rounded px-3 py-2">
+            <button id="recovery-submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Verify</button>
+        </div>
+        <p id="error-message" class="text-red-500 text-sm mt-4 hidden"></p>
     </div>
 
     <script type="module">
-        const errorBanner = document.getElementById("error-banner");
-        function showError(msg) {
-            errorBanner.textContent = msg;
-            errorBanner.classList.remove("hidden");
-            console.error(msg);
-        }
+        const form = document.getElementById("login-form");
+        const errorMsg = document.getElementById("error-message");
+        const totpPrompt = document.getElementById("totp-prompt");
+        const recoveryPrompt = document.getElementById("recovery-prompt");
 
+        // 1. Check if we're already logged in (using the lightweight session endpoint)
         async function verifySession() {
             try {
-                // Quick health check first
-                const health = await fetch('/api/health', { credentials: 'include' });
-                if (!health.ok) throw new Error('Backend unreachable');
-
-                const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        window.location.href = '/pages/ddm/admin-login.html';
-                        return false;
+                const res = await fetch("/api/ddm/auth/session", { credentials: "include" });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.authenticated && data.role === "admin") {
+                        window.location.href = "/pages/ddm/admin-panel.html";
                     }
-                    throw new Error(`Session check failed: ${res.status}`);
                 }
-                return true;
+                // If 401 or any other error, stay on the login page (do nothing)
             } catch (e) {
-                showError(`Authentication error: ${e.message}`);
-                document.getElementById("section-content").innerHTML = `
-                    <p>Session invalid or backend down.</p>
-                    <a href="/pages/ddm/admin-login.html" class="text-blue-600 underline">Go to login</a>
-                `;
-                return false;
+                // Backend unreachable – stay on login page
             }
         }
 
-        const titleEl = document.getElementById("section-title");
-        const contentEl = document.getElementById("section-content");
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.remove("hidden");
+        }
 
-        const sectionTitles = {
-            users: "User Management", groups: "Group Management",
-            files: "File Management", "upload-queue": "Upload Request Queue",
-            announcements: "Announcement Management", "audit-log": "Audit Log",
-            settings: "System Settings"
-        };
+        // 2. Handle login form submission
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            errorMsg.classList.add("hidden");
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
 
-        async function loadComponent(section) {
-            contentEl.innerHTML = '<p>Loading…</p>';
             try {
-                switch (section) {
-                    case "users": {
-                        const { UserTable } = await import("../../components/ddm/admin/user-table.js");
-                        return new UserTable("section-content");
-                    }
-                    case "files": {
-                        const { FileTable } = await import("../../components/ddm/admin/file-table.js");
-                        return new FileTable("section-content");
-                    }
-                    case "upload-queue": {
-                        const { UploadQueue } = await import("../../components/ddm/admin/upload-queue.js");
-                        return new UploadQueue("section-content");
-                    }
-                    case "announcements": {
-                        const { AnnouncementTable } = await import("../../components/ddm/admin/announcement-table.js");
-                        return new AnnouncementTable("section-content");
-                    }
-                    case "audit-log": {
-                        const AuditLogViewer = (await import("../../components/ddm/admin/audit-log-viewer.js")).default;
-                        return new AuditLogViewer("section-content");
-                    }
-                    case "settings": {
-                        const { SettingsPanel } = await import("../../components/ddm/admin/settings-panel.js");
-                        return new SettingsPanel("section-content");
-                    }
-                    case "groups": {
-                        return {
-                            render(container) {
-                                container.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
-                            }
-                        };
-                    }
-                    default:
-                        return null;
+                const res = await fetch("/api/auth/admin/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ detail: "Login failed" }));
+                    showError(err.detail || "Login failed");
+                    return;
+                }
+
+                // Login succeeded – now check if 2FA is required
+                const data = await res.json();
+                if (data.require_totp) {
+                    form.classList.add("hidden");
+                    totpPrompt.classList.remove("hidden");
+                } else {
+                    // No 2FA needed (unlikely per spec, but handle gracefully)
+                    window.location.href = "/pages/ddm/admin-panel.html";
                 }
             } catch (err) {
-                contentEl.innerHTML = `<p class="text-red-500">Failed to load component: ${err.message}</p>`;
-                console.error(err);
-                return null;
+                showError("Network error. Please try again.");
             }
-        }
+        });
 
-        function loadSection(section) {
-            document.querySelectorAll("[data-section]").forEach(link => {
-                link.classList.toggle("bg-gray-700", link.dataset.section === section);
-            });
-            titleEl.textContent = sectionTitles[section] || section;
-            contentEl.innerHTML = "";
-
-            loadComponent(section).then(comp => {
-                if (comp && typeof comp.render === "function") {
-                    comp.render(contentEl);
-                }
-            });
-        }
-
-        window.onerror = function(msg, url, line) {
-            showError(`Module load error: ${msg} (${url}:${line})`);
-        };
-
-        (async function init() {
-            const authenticated = await verifySession();
-            if (!authenticated) return;
-
-            document.querySelectorAll("[data-section]").forEach(link => {
-                link.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    const section = link.dataset.section;
-                    window.location.hash = section;
-                    loadSection(section);
+        // 3. Handle TOTP submission
+        document.getElementById("totp-submit").addEventListener("click", async () => {
+            const code = document.getElementById("totp-code").value;
+            try {
+                const res = await fetch("/api/auth/admin/2fa", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ totp_code: code })
                 });
-            });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ detail: "Invalid code" }));
+                    showError(err.detail || "Invalid code");
+                    return;
+                }
+                window.location.href = "/pages/ddm/admin-panel.html";
+            } catch (err) {
+                showError("Network error.");
+            }
+        });
 
-            const initialSection = window.location.hash.replace("#", "") || "users";
-            loadSection(initialSection);
+        // 4. Handle recovery code submission (same endpoint, just different payload)
+        document.getElementById("recovery-submit").addEventListener("click", async () => {
+            const code = document.getElementById("recovery-code").value;
+            try {
+                const res = await fetch("/api/auth/admin/2fa", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ recovery_code: code })
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ detail: "Invalid recovery code" }));
+                    showError(err.detail || "Invalid code");
+                    return;
+                }
+                window.location.href = "/pages/ddm/admin-panel.html";
+            } catch (err) {
+                showError("Network error.");
+            }
+        });
 
-            document.getElementById("logout-btn").addEventListener("click", () => {
-                document.cookie = "admin_session=; Max-Age=0; path=/";
-                window.location.href = "/pages/ddm/admin-login.html";
-            });
-        })();
+        // 5. Optionally show recovery prompt link
+        //    (add a "Use recovery code" link on the TOTP prompt to switch)
+
+        // Run session check on page load
+        verifySession();
     </script>
 </body>
 </html>
-<!-- end of RCA/frontend/src/pages/ddm/admin-panel.html -->
+<!-- end of RCA/frontend/src/pages/ddm/admin-login.html -->

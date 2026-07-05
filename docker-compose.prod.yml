@@ -167,7 +167,7 @@ services:
       timeout: 10s
       retries: 3
     deploy:
-      resources:
+      resources:  
         limits:
           cpus: '0.3'
           memory: 256M

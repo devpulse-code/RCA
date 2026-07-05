@@ -41,32 +41,22 @@
 
         // ---------- Session check ----------
         async function verifySession() {
-            try {
-                // Quick health check first (avoids redirect loops if backend is down)
-                const health = await fetch('/api/health', { credentials: 'include' });
-                if (!health.ok) throw new Error('Backend unreachable');
-
-                // Now verify admin session by calling an admin-only endpoint
-                const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
-                if (!res.ok) {
-                    // 401 means not logged in -> redirect
-                    if (res.status === 401) {
-                        window.location.href = '/pages/ddm/admin-login.html';
-                        return false;
-                    }
-                    throw new Error(`Session check failed: ${res.status}`);
-                }
+    try {
+        const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.role === 'admin') {
                 return true;
-            } catch (e) {
-                showError(`Authentication error: ${e.message}`);
-                // Give the user a manual way to go to login
-                document.getElementById("section-content").innerHTML = `
-                    <p>Session invalid or backend down.</p>
-                    <a href="/pages/ddm/admin-login.html" class="text-blue-600 underline">Go to login</a>
-                `;
-                return false;
             }
         }
+        // Not admin or not logged in
+        window.location.href = '/pages/ddm/admin-login.html';
+        return false;
+    } catch (e) {
+        showError('Backend unreachable');
+        return false;
+    }
+}
 
         // ---------- Component loading ----------
         const titleEl = document.getElementById("section-title");

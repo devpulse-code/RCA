@@ -12,6 +12,7 @@ from fastapi import APIRouter
 # The code lives under /app/backend/src/, so the base package is backend.src.
 from backend.src.modules.ddm.api.router import router as ddm_router
 from backend.src.modules.ddm.api.auth.admin_login import router as auth_router
+from backend.src.modules.ddm.api.auth.session import router as session_router
 
 router = APIRouter()
 
@@ -20,6 +21,9 @@ router.include_router(ddm_router)
 
 # Mount the admin auth router under /api/auth
 router.include_router(auth_router, prefix="/api/auth")
+
+# Mount the session check endpoint under /api/ddm/auth (public)
+router.include_router(session_router, prefix="/api/ddm/auth")
 
 
 @router.get("/api/health", tags=["health"])

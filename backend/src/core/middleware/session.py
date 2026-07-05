@@ -1,52 +1,64 @@
 # RCA/backend/src/core/middleware/session.py
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi import Request, HTTPException
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from backend.src.core.db.redis import get_redis
-from backend.src.modules.ddm.models.admin import Admin
-from backend.src.modules.ddm.models.user import User
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.src.core.db.database import async_session
-from sqlalchemy import select
+import logging
 
-PUBLIC_PATHS = {
-    "/api/ddm/auth/admin/login",
-    "/api/ddm/auth/admin/2fa",
-    "/api/ddm/auth/passcode",
+logger = logging.getLogger(__name__)
+
+# Prefixes that do NOT require authentication
+PUBLIC_PATH_PREFIXES = (
+    "/api/auth/admin/login",       # ← actual admin login endpoint
+    "/api/auth/admin/2fa",         # ← actual admin 2FA endpoint
+    "/api/ddm/auth/passcode",      # ← user passcode login
+    "/api/ddm/auth/session",       # ← session verification (lightweight)
     "/api/health",
     "/docs",
     "/openapi.json",
-}
+)
 
 class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        # Skip public endpoints
-        if path in PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/openapi"):
+
+        # Allow public paths without any check
+        if any(path.startswith(prefix) for prefix in PUBLIC_PATH_PREFIXES):
             return await call_next(request)
 
-        # Check if path requires user or admin session
+        # Only enforce authentication for /api/ddm routes and /api/auth routes
+        if not path.startswith("/api/ddm") and not path.startswith("/api/auth"):
+            return await call_next(request)
+
         admin_session_id = request.cookies.get("admin_session")
         user_session_id = request.cookies.get("user_session")
 
-        if not admin_session_id and not user_session_id and path.startswith("/api/ddm"):
-            # Allow unauthenticated for public API? No, all /api/ddm except auth endpoints require login
-            if not any(path.startswith(p) for p in PUBLIC_PATHS):
-                raise HTTPException(status_code=401, detail="Not authenticated")
+        if not admin_session_id and not user_session_id:
+            return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
 
-        redis = await get_redis()
+        try:
+            redis = await get_redis()
+        except Exception as e:
+            logger.error(f"Redis connection failed during session check: {e}")
+            return JSONResponse(status_code=503, content={"detail": "Session service temporarily unavailable"})
+
         if admin_session_id:
-            admin_id = await redis.get(f"admin_session:{admin_session_id}")
-            if admin_id:
-                # Validate admin exists (optional, but can do a quick check)
-                # For performance, we skip DB check here; the actual endpoint will do full validation.
-                # We only ensure the session key exists.
-                pass
-            else:
-                raise HTTPException(status_code=401, detail="Admin session expired")
+            try:
+                admin_id = await redis.get(f"admin_session:{admin_session_id}")
+            except Exception as e:
+                logger.error(f"Redis get error for admin session: {e}")
+                return JSONResponse(status_code=503, content={"detail": "Session service error"})
+            if not admin_id:
+                return JSONResponse(status_code=401, content={"detail": "Admin session expired"})
+
         elif user_session_id:
-            user_id = await redis.hget(f"user_session:{user_session_id}", "user_id")
+            try:
+                user_id = await redis.hget(f"user_session:{user_session_id}", "user_id")
+            except Exception as e:
+                logger.error(f"Redis hget error for user session: {e}")
+                return JSONResponse(status_code=503, content={"detail": "Session service error"})
             if not user_id:
-                raise HTTPException(status_code=401, detail="User session expired")
+                return JSONResponse(status_code=401, content={"detail": "User session expired"})
 
         response = await call_next(request)
         return response
