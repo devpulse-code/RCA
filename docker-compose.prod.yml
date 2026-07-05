@@ -12,6 +12,8 @@ services:
     volumes:
       - ./frontend/src:/usr/share/nginx/html:ro
       - certbot_data:/etc/letsencrypt:ro
+      - nginx_cache:/var/cache/nginx        # <-- writable volume
+    user: "1000:1000"                        # <-- non-root user
     networks:
       - frontend
     restart: unless-stopped
@@ -176,11 +178,12 @@ volumes:
   ddm_meili_data:
   ddm_uploads:
   certbot_data:
+  nginx_cache:                 # <-- new volume
 
 networks:
   frontend:
     driver: bridge
   backend:
     driver: bridge
-    internal: true   # No external access to DB/cache/search
+    internal: true
 # end of RCA/docker-compose.prod.yml

@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-WORKDIR /app/backend                     # <-- changed from /app to /app/backend
+WORKDIR /app/backend
 
 # Install curl (healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
@@ -16,7 +16,8 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
-COPY backend/src ./src                  # now relative to /app/backend, so files go to /app/backend/src
+# Now relative to /app/backend, so files go to /app/backend/src
+COPY backend/src ./src
 COPY backend/alembic.ini .
 COPY backend/pyproject.toml .
 
