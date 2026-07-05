@@ -1,4 +1,4 @@
-# RCA/backend/src/modules/ddm/models/announcement.py
+# backend/src/modules/ddm/models/announcement.py
 from sqlalchemy import Column, Integer, String, Text, DateTime, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.src.core.models.base import Base
@@ -20,10 +20,10 @@ class Announcement(Base, TimestampMixin):
     body = Column(Text, nullable=False)
     expiry = Column(DateTime, nullable=True)
 
-    # Temporarily disabled – Group model doesn't yet define 'announcements'
-    # groups = relationship(
-    #     "Group",
-    #     secondary=announcement_group_association,
-    #     back_populates="announcements"
-    # )
-# end of RCA/backend/src/modules/ddm/models/announcement.pyc
+    # Re-enable the relationship now that Group defines the back‑populates
+    groups = relationship(
+        "Group",
+        secondary=announcement_group_association,
+        back_populates="announcements"
+    )
+# end of backend/src/modules/ddm/models/announcement.py

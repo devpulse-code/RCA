@@ -1,12 +1,8 @@
-# RCA/backend/src/modules/ddm/models/group.py
-from sqlalchemy import Column, Integer, String
+# backend/src/modules/ddm/models/group.py
+from sqlalchemy import Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.src.core.models.base import Base
 from .base import TimestampMixin
-from .user import user_group_association
-from .file import file_group_association
-# from .announcement import announcement_group_association   # leave disabled until needed
-
 
 class Group(Base, TimestampMixin):
     __tablename__ = "groups"
@@ -14,11 +10,24 @@ class Group(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
-    users = relationship("User", secondary=user_group_association, back_populates="groups")
-    files = relationship("File", secondary=file_group_association, back_populates="groups")
-    # announcements = relationship(
-    #     "Announcement",
-    #     secondary=announcement_group_association,
-    #     back_populates="groups"
-    # )
-# end of RCA/backend/src/modules/ddm/models/group.py
+    # Many‑to‑many with File
+    files = relationship(
+        "File",
+        secondary="file_group",   # table name defined in file model
+        back_populates="groups"
+    )
+
+    # Many‑to‑many with User
+    users = relationship(
+        "User",
+        secondary="user_group",
+        back_populates="groups"
+    )
+
+    # Many‑to‑many with Announcement
+    announcements = relationship(
+        "Announcement",
+        secondary="announcement_groups",
+        back_populates="groups"
+    )
+# end of backend/src/modules/ddm/models/group.py

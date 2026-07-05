@@ -1,4 +1,4 @@
-# RCA/backend/src/modules/ddm/api/admin/files.py
+# backend/src/modules/ddm/api/admin/files.py
 
 import json
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File as FastAPIFile, Form
@@ -8,6 +8,7 @@ from typing import List, Optional
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.api.deps import get_current_admin
 from backend.src.modules.ddm.models.file import File
+from backend.src.modules.ddm.models.group import Group
 from backend.src.modules.ddm.schemas.file import FileOut
 from backend.src.modules.ddm.services.file_service import (
     delete_file,
@@ -30,6 +31,11 @@ async def list_files(
     files = result.scalars().all()
     out = []
     for f in files:
+        # fetch group names explicitly to avoid greenlet errors
+        group_result = await db.execute(
+            select(Group).where(Group.id.in_([g.id for g in f.groups]))
+        )
+        group_objs = group_result.scalars().all()
         out.append(FileOut(
             id=f.id,
             name=f.name,
@@ -37,7 +43,7 @@ async def list_files(
             storage_type=f.storage_type.value,
             mime_type=f.mime_type,
             size=f.size,
-            groups=[g.name for g in f.groups],
+            groups=[g.name for g in group_objs],
             uploader_type=f.uploader_type,
             uploader_id=f.uploader_id,
             status=f.status,
@@ -49,7 +55,7 @@ async def list_files(
 
 @router.post("/", response_model=FileOut, status_code=201)
 async def upload_file(
-    request: Request,                       # Moved to first position (no default)
+    request: Request,
     name: str = Form(...),
     description: str = Form(""),
     storage_type: str = Form(...),
@@ -87,6 +93,13 @@ async def upload_file(
         ip_address=request.client.host,
     )
 
+    # Fetch group names explicitly to avoid greenlet lazy load
+    group_names = []
+    if group_ids:
+        group_result = await db.execute(select(Group).where(Group.id.in_(group_ids)))
+        group_objs = group_result.scalars().all()
+        group_names = [g.name for g in group_objs]
+
     await log_audit(
         db,
         action="upload_file",
@@ -103,7 +116,7 @@ async def upload_file(
         storage_type=new_file.storage_type.value,
         mime_type=new_file.mime_type,
         size=new_file.size,
-        groups=[g.name for g in new_file.groups],
+        groups=group_names,
         uploader_type=new_file.uploader_type,
         uploader_id=new_file.uploader_id,
         status=new_file.status,
@@ -159,7 +172,6 @@ async def change_file_groups(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    from backend.src.modules.ddm.models.group import Group
     result = await db.execute(select(Group).where(Group.id.in_(group_ids)))
     groups = result.scalars().all()
     if len(groups) != len(group_ids):
@@ -198,6 +210,13 @@ async def replace_file(
         terabox_url=terabox_url,
         ip_address=request.client.host,
     )
+    # Fetch group names explicitly to avoid greenlet error
+    group_result = await db.execute(
+        select(Group).where(Group.id.in_([g.id for g in file_record.groups]))
+    )
+    group_objs = group_result.scalars().all()
+    group_names = [g.name for g in group_objs]
+
     await log_audit(
         db,
         action="replace_file_content",
@@ -213,11 +232,11 @@ async def replace_file(
         storage_type=file_record.storage_type.value,
         mime_type=file_record.mime_type,
         size=file_record.size,
-        groups=[g.name for g in file_record.groups],
+        groups=group_names,
         uploader_type=file_record.uploader_type,
         uploader_id=file_record.uploader_id,
         status=file_record.status,
         created_at=str(file_record.created_at),
         updated_at=str(file_record.updated_at),
     )
-# end of RCA/backend/src/modules/ddm/api/admin/files.py
+# end of backend/src/modules/ddm/api/admin/files.py

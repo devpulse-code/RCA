@@ -1,7 +1,8 @@
-# RCA/backend/src/modules/ddm/api/files/list.py
+# backend/src/modules/ddm/api/files/list.py
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.api.deps import get_current_user
 from backend.src.modules.ddm.models.file import File
@@ -17,8 +18,14 @@ async def list_user_files(
     user=Depends(get_current_user),
 ):
     user_group_ids = [g.id for g in user.groups]
-    result = await db.execute(select(File).where(File.status == "active"))
-    all_files = result.scalars().all()
+
+    # Eagerly load the groups relationship to avoid MissingGreenlet
+    result = await db.execute(
+        select(File)
+        .where(File.status == "active")
+        .options(selectinload(File.groups))
+    )
+    all_files = result.unique().scalars().all()
 
     out = []
     for f in all_files:
@@ -41,4 +48,4 @@ async def list_user_files(
             updated_at=str(f.updated_at),
         ))
     return out
-# end of RCA/backend/src/modules/ddm/api/files/list.py
+# end of backend/src/modules/ddm/api/files/list.py
