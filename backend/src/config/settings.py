@@ -1,6 +1,6 @@
 # RCA/backend/src/config/settings.py
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
 
 
 class Settings(BaseSettings):
@@ -19,10 +19,10 @@ class Settings(BaseSettings):
 
     # Application
     ddm_encryption_key: str = ""
-    ddm_ai_provider: str = "gemini"            # gemini, together, groq
+    ddm_ai_provider: str = "gemini"
     ddm_ai_api_key: str = ""
     ddm_ai_model: str = "gemini-2.0-flash"
-    ddm_ai_enabled: bool = True                # master switch for AI assistant
+    ddm_ai_enabled: bool = True
     ddm_admin_upload_limit_mb: int = 500
     ddm_user_upload_limit_mb: int = 100
     ddm_secret_key: str = "change_me_secret"
@@ -37,8 +37,14 @@ class Settings(BaseSettings):
     session_inactivity_minutes: int = 30
     single_session_mode: bool = False
 
-    # CORS
-    allowed_origins: list[str] = ["*"]
+    # CORS – must be a list of exact origins (no "*" when credentials are used)
+    allowed_origins: List[str] = [
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost",
+        "http://127.0.0.1",
+        # Add your production domain here, e.g. "https://yourdomain.com"
+    ]
 
     class Config:
         env_file = ".env"

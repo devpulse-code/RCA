@@ -1,6 +1,6 @@
 // RCA/frontend/src/components/ddm/admin/user-table.js
 import * as AdminService from "../../../services/ddm/admin-service.js";
-import { showToast } from "../../ui/toast.js";
+import { showToast, showPasscodeToast } from "../../ui/toast.js";
 import { openModal } from "../../ui/modal.js";
 
 export class UserTable {
@@ -15,7 +15,6 @@ export class UserTable {
 
   async load() {
     try {
-      // Use getUsers (not fetchUsers) as defined in admin-service.js
       this.users = await AdminService.getUsers();
       this.groups = await AdminService.fetchGroups();
       this.render();
@@ -94,7 +93,7 @@ export class UserTable {
         if (confirm("Revoke passcode and generate a new one?")) {
           try {
             const res = await AdminService.revokePasscode(parseInt(id));
-            showToast(`New passcode: ${res.passcode}`, "success");
+            showPasscodeToast("New passcode generated:", res.passcode);
             this.load();
           } catch (e) {
             showToast(e.message, "error");
@@ -133,9 +132,56 @@ export class UserTable {
     if (!confirm(`Revoke passcodes for ${ids.length} users?`)) return;
     try {
       const results = await AdminService.bulkRevokePasscodes(ids);
-      let msg = results.map(r => `ID ${r.user_id}: ${r.passcode}`).join("\n");
-      alert("New passcodes:\n" + msg);
-      showToast("Passcodes revoked", "success");
+      // Build a modal content with copy buttons for each passcode
+      const rows = results.map(r => `
+        <tr>
+          <td class="px-2 py-1">${r.user_id}</td>
+          <td class="px-2 py-1"><code class="bg-gray-100 px-1 rounded">${r.passcode}</code></td>
+          <td class="px-2 py-1"><button class="copy-single-btn text-blue-600 hover:underline text-sm" data-passcode="${r.passcode}">Copy</button></td>
+        </tr>
+      `).join("");
+      const content = `
+        <div class="space-y-3">
+          <p class="font-semibold">New passcodes generated:</p>
+          <table class="w-full text-sm">
+            <thead><tr><th>User ID</th><th>Passcode</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="flex gap-2">
+            <button id="bulk-copy-all" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Copy All</button>
+            <button id="bulk-download-csv" class="bg-gray-500 text-white px-3 py-1 rounded text-sm">Download CSV</button>
+          </div>
+        </div>
+      `;
+      openModal(content, (modal) => {
+        // Attach copy buttons inside modal
+        modal.querySelectorAll(".copy-single-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const passcode = btn.dataset.passcode;
+            navigator.clipboard.writeText(passcode).then(() => {
+              btn.textContent = "Copied!";
+              setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+            });
+          });
+        });
+        modal.querySelector("#bulk-copy-all")?.addEventListener("click", () => {
+          const allPasscodes = results.map(r => r.passcode).join("\n");
+          navigator.clipboard.writeText(allPasscodes).then(() => {
+            showToast("All passcodes copied to clipboard", "success");
+          }).catch(() => showToast("Copy failed", "error"));
+        });
+        modal.querySelector("#bulk-download-csv")?.addEventListener("click", () => {
+          const csvContent = "User ID,Name,Passcode\n" +
+            results.map(r => `${r.user_id},"","${r.passcode}"`).join("\n");
+          const blob = new Blob([csvContent], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "passcodes.csv";
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      });
       this.load();
     } catch (e) {
       showToast(e.message, "error");
@@ -165,7 +211,7 @@ export class UserTable {
         };
         try {
           const res = await AdminService.createUser(data);
-          showToast(`User created. Passcode: ${res.passcode}`, "success");
+          showPasscodeToast("User created. Passcode:", res.passcode);
           modal.close();
           this.load();
         } catch (err) {

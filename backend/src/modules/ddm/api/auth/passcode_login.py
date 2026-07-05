@@ -7,6 +7,7 @@ from backend.src.core.db.database import get_db
 from backend.src.core.db.redis import get_redis
 from backend.src.modules.ddm.models.user import User
 from backend.src.modules.ddm.services.passcode_service import verify_passcode
+from backend.src.modules.ddm.schemas.auth import PasscodeLoginResponse
 
 router = APIRouter()
 
@@ -35,14 +36,18 @@ async def passcode_login(
     })
     await redis.expire(session_key, 8 * 3600)  # 8h default
 
-    resp = JSONResponse(content={"message": "Login successful"})
+    resp = JSONResponse(content={
+        "message": "Login successful",
+        "redirect": "/dashboard"
+    })
     resp.set_cookie(
         key="user_session",
         value=session_id,
         httponly=True,
-        secure=False,
+        secure=False,          # Set to True when using HTTPS
         samesite="strict",
         max_age=8 * 3600,
+        path="/",
     )
     return resp
 # end of RCA/backend/src/modules/ddm/api/auth/passcode_login.py

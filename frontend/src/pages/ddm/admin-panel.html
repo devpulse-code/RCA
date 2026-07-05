@@ -26,109 +26,150 @@
         </aside>
         <!-- Main content -->
         <main class="flex-1 p-8">
-            <h1 class="text-2xl font-bold mb-6" id="section-title">User Management</h1>
-            <div id="section-content"></div>
+            <h1 class="text-2xl font-bold mb-6" id="section-title">Loading...</h1>
+            <div id="section-content" class="text-gray-500">Checking authentication…</div>
         </main>
     </div>
 
     <script type="module">
-        window.onerror = function(msg, url, line) {
-            const banner = document.getElementById("error-banner");
-            banner.textContent = `Module load error: ${msg} (${url}:${line})`;
-            banner.classList.remove("hidden");
-        };
+        const errorBanner = document.getElementById("error-banner");
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.remove("hidden");
+            console.error(msg);
+        }
 
-        async function loadModules() {
+        // ---------- Session check ----------
+        async function verifySession() {
             try {
-                const { UserTable } = await import("../../components/ddm/admin/user-table.js");
-                const { FileTable } = await import("../../components/ddm/admin/file-table.js");
-                const { UploadQueue } = await import("../../components/ddm/admin/upload-queue.js");
-                const { AnnouncementTable } = await import("../../components/ddm/admin/announcement-table.js");
-                const AuditLogViewer = (await import("../../components/ddm/admin/audit-log-viewer.js")).default;
-                const { SettingsPanel } = await import("../../components/ddm/admin/settings-panel.js");
-                const { showToast } = await import("../../components/ui/toast.js");
+                // Quick health check first (avoids redirect loops if backend is down)
+                const health = await fetch('/api/health', { credentials: 'include' });
+                if (!health.ok) throw new Error('Backend unreachable');
 
-                // Session verification
-                async function verifySession() {
-                    try {
-                        const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
-                        if (!res.ok) throw new Error('Not authenticated');
-                    } catch {
+                // Now verify admin session by calling an admin-only endpoint
+                const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
+                if (!res.ok) {
+                    // 401 means not logged in -> redirect
+                    if (res.status === 401) {
                         window.location.href = '/pages/ddm/admin-login.html';
                         return false;
                     }
-                    return true;
+                    throw new Error(`Session check failed: ${res.status}`);
                 }
+                return true;
+            } catch (e) {
+                showError(`Authentication error: ${e.message}`);
+                // Give the user a manual way to go to login
+                document.getElementById("section-content").innerHTML = `
+                    <p>Session invalid or backend down.</p>
+                    <a href="/pages/ddm/admin-login.html" class="text-blue-600 underline">Go to login</a>
+                `;
+                return false;
+            }
+        }
 
-                const authenticated = await verifySession();
-                if (!authenticated) return;
+        // ---------- Component loading ----------
+        const titleEl = document.getElementById("section-title");
+        const contentEl = document.getElementById("section-content");
 
-                // Tab loading
-                const titleEl = document.getElementById("section-title");
-                const contentEl = document.getElementById("section-content");
-                const sectionTitles = {
-                    users: "User Management", groups: "Group Management",
-                    files: "File Management", "upload-queue": "Upload Request Queue",
-                    announcements: "Announcement Management", "audit-log": "Audit Log",
-                    settings: "System Settings"
-                };
+        const sectionTitles = {
+            users: "User Management", groups: "Group Management",
+            files: "File Management", "upload-queue": "Upload Request Queue",
+            announcements: "Announcement Management", "audit-log": "Audit Log",
+            settings: "System Settings"
+        };
 
-                function createComponent(section) {
-                    switch (section) {
-                        case "users": return new UserTable("section-content");
-                        case "files": return new FileTable("section-content");
-                        case "upload-queue": return new UploadQueue("section-content");
-                        case "announcements": return new AnnouncementTable("section-content");
-                        case "audit-log": return new AuditLogViewer("section-content");
-                        case "settings": return new SettingsPanel("section-content");
-                        case "groups": return {
+        // Lazy load components only when needed
+        async function loadComponent(section) {
+            contentEl.innerHTML = '<p>Loading…</p>';
+            try {
+                switch (section) {
+                    case "users": {
+                        const { UserTable } = await import("../../components/ddm/admin/user-table.js");
+                        return new UserTable("section-content");
+                    }
+                    case "files": {
+                        const { FileTable } = await import("../../components/ddm/admin/file-table.js");
+                        return new FileTable("section-content");
+                    }
+                    case "upload-queue": {
+                        const { UploadQueue } = await import("../../components/ddm/admin/upload-queue.js");
+                        return new UploadQueue("section-content");
+                    }
+                    case "announcements": {
+                        const { AnnouncementTable } = await import("../../components/ddm/admin/announcement-table.js");
+                        return new AnnouncementTable("section-content");
+                    }
+                    case "audit-log": {
+                        const AuditLogViewer = (await import("../../components/ddm/admin/audit-log-viewer.js")).default;
+                        return new AuditLogViewer("section-content");
+                    }
+                    case "settings": {
+                        const { SettingsPanel } = await import("../../components/ddm/admin/settings-panel.js");
+                        return new SettingsPanel("section-content");
+                    }
+                    case "groups": {
+                        return {
                             render(container) {
                                 container.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
                             }
                         };
-                        default: return null;
                     }
+                    default:
+                        return null;
                 }
-
-                function loadSection(section) {
-                    document.querySelectorAll("[data-section]").forEach(link => {
-                        link.classList.toggle("bg-gray-700", link.dataset.section === section);
-                    });
-                    titleEl.textContent = sectionTitles[section] || section;
-                    contentEl.innerHTML = "";
-                    const comp = createComponent(section);
-                    if (comp && typeof comp.render === "function") {
-                        comp.render(contentEl);
-                    } else {
-                        contentEl.innerHTML = `<p class="text-red-500">Component not available.</p>`;
-                    }
-                }
-
-                document.querySelectorAll("[data-section]").forEach(link => {
-                    link.addEventListener("click", (e) => {
-                        e.preventDefault();
-                        const section = link.dataset.section;
-                        window.location.hash = section;
-                        loadSection(section);
-                    });
-                });
-
-                const initialSection = window.location.hash.replace("#", "") || "users";
-                loadSection(initialSection);
-
-                document.getElementById("logout-btn").addEventListener("click", () => {
-                    document.cookie = "admin_session=; Max-Age=0; path=/";
-                    window.location.href = "/pages/ddm/admin-login.html";
-                });
             } catch (err) {
-                const banner = document.getElementById("error-banner");
-                banner.textContent = `Failed to load modules: ${err.message}`;
-                banner.classList.remove("hidden");
+                contentEl.innerHTML = `<p class="text-red-500">Failed to load component: ${err.message}</p>`;
                 console.error(err);
+                return null;
             }
         }
 
-        loadModules();
+        function loadSection(section) {
+            document.querySelectorAll("[data-section]").forEach(link => {
+                link.classList.toggle("bg-gray-700", link.dataset.section === section);
+            });
+            titleEl.textContent = sectionTitles[section] || section;
+            contentEl.innerHTML = "";
+
+            loadComponent(section).then(comp => {
+                if (comp && typeof comp.render === "function") {
+                    comp.render(contentEl);
+                } else if (!comp) {
+                    // fallback already set inside loadComponent
+                }
+            });
+        }
+
+        // ---------- Main ----------
+        window.onerror = function(msg, url, line) {
+            showError(`Module load error: ${msg} (${url}:${line})`);
+        };
+
+        (async function init() {
+            const authenticated = await verifySession();
+            if (!authenticated) return;
+
+            // Wire up sidebar navigation
+            document.querySelectorAll("[data-section]").forEach(link => {
+                link.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const section = link.dataset.section;
+                    window.location.hash = section;
+                    loadSection(section);
+                });
+            });
+
+            // Load initial section
+            const initialSection = window.location.hash.replace("#", "") || "users";
+            loadSection(initialSection);
+
+            // Logout handler
+            document.getElementById("logout-btn").addEventListener("click", () => {
+                document.cookie = "admin_session=; Max-Age=0; path=/";
+                window.location.href = "/pages/ddm/admin-login.html";
+            });
+        })();
     </script>
 </body>
 </html>

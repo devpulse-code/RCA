@@ -3,6 +3,7 @@ import secrets
 import string
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.src.modules.ddm.models.user import User
 from backend.src.core.utils.encryption import encrypt_data, decrypt_data
 
@@ -14,9 +15,7 @@ def generate_passcode(length: int = 12) -> str:
 
 async def create_passcode_for_user(db: AsyncSession, user: User) -> str:
     """Generate a new passcode, encrypt and store it, deactivate previous."""
-    # Deactivate old passcode (just in case)
     user.passcode_active = False
-    # Generate new
     passcode = generate_passcode()
     user.encrypted_passcode = encrypt_data(passcode)
     user.passcode_active = True
@@ -38,12 +37,11 @@ async def get_passcode(db: AsyncSession, user: User) -> str:
 
 
 async def verify_passcode(db: AsyncSession, passcode: str) -> User | None:
-    """Find user with matching active passcode."""
-    # We cannot filter by decrypted value, so we load all active users and decrypt one by one.
-    # For performance, this is acceptable for small/medium user bases. Better approach: store hash.
-    # But spec requires reversible encryption. We'll implement per spec.
+    """Find user with matching active passcode, eagerly loading groups."""
     result = await db.execute(
-        select(User).where(User.passcode_active == True)
+        select(User)
+        .where(User.passcode_active == True)
+        .options(selectinload(User.groups))
     )
     users = result.scalars().all()
     for user in users:

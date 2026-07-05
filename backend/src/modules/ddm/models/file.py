@@ -26,13 +26,14 @@ class File(Base, TimestampMixin):
     name = Column(String, nullable=False)
     description = Column(String, default="")
     storage_type = Column(SAEnum(StorageType), nullable=False)
-    local_path = Column(String, nullable=True)               # for local files
-    encrypted_terabox_url = Column(String, nullable=True)    # encrypted URL
+    local_path = Column(String, nullable=True)
+    encrypted_terabox_url = Column(String, nullable=True)
     mime_type = Column(String, nullable=True)
-    size = Column(Integer, nullable=True)                    # in bytes
-    uploader_id = Column(Integer, nullable=True)              # admin or user id
-    uploader_type = Column(String, nullable=True)             # 'admin' or 'user'
-    status = Column(String, default="active")                 # active, pending, rejected
-    # File-group many-to-many
+    size = Column(Integer, nullable=True)
+    uploader_id = Column(Integer, nullable=True)
+    uploader_type = Column(String, nullable=True)
+    status = Column(String, default="active")
+
+    # Enable the many-to-many relationship to Group
     groups = relationship("Group", secondary=file_group_association, back_populates="files")
 # end of RCA/backend/src/modules/ddm/models/file.py

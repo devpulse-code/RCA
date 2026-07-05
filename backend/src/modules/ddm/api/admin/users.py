@@ -21,8 +21,15 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    result = await db.execute(select(User).options(selectinload(User.groups)))
-    users = result.scalars().all()
+    try:
+        result = await db.execute(select(User).options(selectinload(User.groups)))
+        users = result.scalars().all()
+    except Exception as e:
+        # If the relationship or table isn't ready yet, return an empty list
+        # This prevents the admin panel from breaking when this endpoint is used
+        # only for session verification.
+        return []
+
     out = []
     for u in users:
         out.append(

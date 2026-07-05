@@ -5,19 +5,20 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-WORKDIR /app
+WORKDIR /app/backend                     # <-- changed from /app to /app/backend
 
 # Install curl (healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements relative to project root context
+# Copy requirements relative to project root
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
-COPY backend/src ./backend/src
-COPY backend/alembic.ini ./backend/
+COPY backend/src ./src                  # now relative to /app/backend, so files go to /app/backend/src
+COPY backend/alembic.ini .
+COPY backend/pyproject.toml .
 
 # Copy entrypoint and make it executable
 COPY docker/backend/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -27,7 +28,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN addgroup --system app && adduser --system --ingroup app app
 RUN mkdir -p /app/uploads && chown app:app /app/uploads
 
-# Switch to the non‑root user for all remaining commands
+# Switch to the non‑root user
 USER app
 
 # Development target

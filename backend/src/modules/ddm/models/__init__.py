@@ -3,8 +3,8 @@ from .base import TimestampMixin
 from .user import User
 from .group import Group
 from .admin import Admin
-from .file import File
-from .announcement import Announcement
+# from .file import File                  # ← disabled until fully implemented
+# from .announcement import Announcement  # ← disabled
 from .audit_log import AuditLog
 from .system_setting import SystemSetting
 
@@ -13,8 +13,8 @@ __all__ = [
     "User",
     "Group",
     "Admin",
-    "File",
-    "Announcement",
+    # "File",
+    # "Announcement",
     "AuditLog",
     "SystemSetting",
 ]

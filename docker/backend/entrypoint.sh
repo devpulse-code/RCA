@@ -6,10 +6,9 @@ set -e
 export PYTHONPATH=/app
 
 echo ">>> Running Alembic migrations..."
-cd /app/backend
+# No need to cd, WORKDIR is already /app/backend
 alembic upgrade head
 
 echo ">>> Migrations complete, starting application..."
-cd /app
 exec "$@"
 # end of RCA/docker/backend/entrypoint.sh

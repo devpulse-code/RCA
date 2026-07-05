@@ -1,85 +1,164 @@
-<!-- RCA/frontend/src/pages/ddm/admin-login.html -->
+<!-- RCA/frontend/src/pages/ddm/admin-panel.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDM - Admin Login</title>
+    <title>DDM - Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
-        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h1>
-        <form id="admin-login-form" class="space-y-4">
-            <div id="step-username-password">
-                <div class="mb-4">
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-            </div>
-            <div id="step-totp" class="hidden mb-4">
-                <label for="totp" class="block text-sm font-medium text-gray-700">TOTP Code</label>
-                <input type="text" id="totp" name="totp" placeholder="6-digit code"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                <p class="text-xs text-gray-500 mt-1">If you don't have TOTP, click "Sign In" without code.</p>
-            </div>
-            <button type="submit" class="w-full bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-900 disabled:opacity-50"
-                    id="submit-btn">
-                Sign In
-            </button>
-        </form>
-        <p id="error-message" class="text-red-500 text-sm mt-3 hidden"></p>
+<body class="bg-gray-100">
+    <div id="error-banner" class="hidden bg-red-600 text-white p-3 text-center"></div>
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 text-white p-6">
+            <h2 class="text-xl font-bold mb-6">Admin Panel</h2>
+            <nav class="space-y-2" id="sidebar-nav">
+                <a href="#users" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="users">Users</a>
+                <a href="#groups" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="groups">Groups</a>
+                <a href="#files" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="files">Files</a>
+                <a href="#upload-queue" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="upload-queue">Upload Queue</a>
+                <a href="#announcements" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="announcements">Announcements</a>
+                <a href="#audit-log" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="audit-log">Audit Log</a>
+                <a href="#settings" class="block py-2 px-3 rounded hover:bg-gray-700" data-section="settings">Settings</a>
+                <button id="logout-btn" class="mt-4 w-full bg-red-600 py-2 px-3 rounded hover:bg-red-700">Logout</button>
+            </nav>
+        </aside>
+        <!-- Main content -->
+        <main class="flex-1 p-8">
+            <h1 class="text-2xl font-bold mb-6" id="section-title">Loading...</h1>
+            <div id="section-content" class="text-gray-500">Checking authentication…</div>
+        </main>
     </div>
 
     <script type="module">
-        import { adminLogin } from '/services/ddm/auth-service.js';
+        const errorBanner = document.getElementById("error-banner");
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.remove("hidden");
+            console.error(msg);
+        }
 
-        const form = document.getElementById('admin-login-form');
-        const errorEl = document.getElementById('error-message');
-        const submitBtn = document.getElementById('submit-btn');
-        const stepUserPass = document.getElementById('step-username-password');
-        const stepTotp = document.getElementById('step-totp');
-        const totpInput = document.getElementById('totp');
-
-        let loginStage = 'password'; // 'password' or 'totp'
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            errorEl.classList.add('hidden');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Signing in…';
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const totp = totpInput.value.trim();
-
+        async function verifySession() {
             try {
-                await adminLogin(username, password, totp || undefined);
-                window.location.href = '/pages/ddm/admin-panel.html';
-            } catch (err) {
-                if (err.message.includes('TOTP required') || err.message.includes('2FA')) {
-                    // Switch to TOTP stage
-                    stepUserPass.classList.add('hidden');
-                    stepTotp.classList.remove('hidden');
-                    errorEl.textContent = 'Please enter your TOTP code.';
-                    errorEl.classList.remove('hidden');
-                    loginStage = 'totp';
-                } else {
-                    errorEl.textContent = err.message;
-                    errorEl.classList.remove('hidden');
+                // Quick health check first
+                const health = await fetch('/api/health', { credentials: 'include' });
+                if (!health.ok) throw new Error('Backend unreachable');
+
+                const res = await fetch('/api/ddm/admin/users/', { credentials: 'include' });
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        window.location.href = '/pages/ddm/admin-login.html';
+                        return false;
+                    }
+                    throw new Error(`Session check failed: ${res.status}`);
                 }
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Sign In';
+                return true;
+            } catch (e) {
+                showError(`Authentication error: ${e.message}`);
+                document.getElementById("section-content").innerHTML = `
+                    <p>Session invalid or backend down.</p>
+                    <a href="/pages/ddm/admin-login.html" class="text-blue-600 underline">Go to login</a>
+                `;
+                return false;
             }
-        });
+        }
+
+        const titleEl = document.getElementById("section-title");
+        const contentEl = document.getElementById("section-content");
+
+        const sectionTitles = {
+            users: "User Management", groups: "Group Management",
+            files: "File Management", "upload-queue": "Upload Request Queue",
+            announcements: "Announcement Management", "audit-log": "Audit Log",
+            settings: "System Settings"
+        };
+
+        async function loadComponent(section) {
+            contentEl.innerHTML = '<p>Loading…</p>';
+            try {
+                switch (section) {
+                    case "users": {
+                        const { UserTable } = await import("../../components/ddm/admin/user-table.js");
+                        return new UserTable("section-content");
+                    }
+                    case "files": {
+                        const { FileTable } = await import("../../components/ddm/admin/file-table.js");
+                        return new FileTable("section-content");
+                    }
+                    case "upload-queue": {
+                        const { UploadQueue } = await import("../../components/ddm/admin/upload-queue.js");
+                        return new UploadQueue("section-content");
+                    }
+                    case "announcements": {
+                        const { AnnouncementTable } = await import("../../components/ddm/admin/announcement-table.js");
+                        return new AnnouncementTable("section-content");
+                    }
+                    case "audit-log": {
+                        const AuditLogViewer = (await import("../../components/ddm/admin/audit-log-viewer.js")).default;
+                        return new AuditLogViewer("section-content");
+                    }
+                    case "settings": {
+                        const { SettingsPanel } = await import("../../components/ddm/admin/settings-panel.js");
+                        return new SettingsPanel("section-content");
+                    }
+                    case "groups": {
+                        return {
+                            render(container) {
+                                container.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
+                            }
+                        };
+                    }
+                    default:
+                        return null;
+                }
+            } catch (err) {
+                contentEl.innerHTML = `<p class="text-red-500">Failed to load component: ${err.message}</p>`;
+                console.error(err);
+                return null;
+            }
+        }
+
+        function loadSection(section) {
+            document.querySelectorAll("[data-section]").forEach(link => {
+                link.classList.toggle("bg-gray-700", link.dataset.section === section);
+            });
+            titleEl.textContent = sectionTitles[section] || section;
+            contentEl.innerHTML = "";
+
+            loadComponent(section).then(comp => {
+                if (comp && typeof comp.render === "function") {
+                    comp.render(contentEl);
+                }
+            });
+        }
+
+        window.onerror = function(msg, url, line) {
+            showError(`Module load error: ${msg} (${url}:${line})`);
+        };
+
+        (async function init() {
+            const authenticated = await verifySession();
+            if (!authenticated) return;
+
+            document.querySelectorAll("[data-section]").forEach(link => {
+                link.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const section = link.dataset.section;
+                    window.location.hash = section;
+                    loadSection(section);
+                });
+            });
+
+            const initialSection = window.location.hash.replace("#", "") || "users";
+            loadSection(initialSection);
+
+            document.getElementById("logout-btn").addEventListener("click", () => {
+                document.cookie = "admin_session=; Max-Age=0; path=/";
+                window.location.href = "/pages/ddm/admin-login.html";
+            });
+        })();
     </script>
 </body>
 </html>
-<!-- end of RCA/frontend/src/pages/ddm/admin-login.html -->
+<!-- end of RCA/frontend/src/pages/ddm/admin-panel.html -->

@@ -1,4 +1,5 @@
 # RCA/backend/src/modules/ddm/api/admin/files.py
+
 import json
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File as FastAPIFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +11,7 @@ from backend.src.modules.ddm.models.file import File
 from backend.src.modules.ddm.schemas.file import FileOut
 from backend.src.modules.ddm.services.file_service import (
     delete_file,
-    create_file,                     # new import
+    create_file,
     update_file_record,
     replace_file_content,
 )
@@ -18,6 +19,7 @@ from backend.src.modules.ddm.services.audit_service import log_audit
 from backend.src.config.settings import settings
 
 router = APIRouter(tags=["admin-files"])
+
 
 @router.get("/", response_model=List[FileOut])
 async def list_files(
@@ -44,21 +46,22 @@ async def list_files(
         ))
     return out
 
+
 @router.post("/", response_model=FileOut, status_code=201)
 async def upload_file(
+    request: Request,                       # Moved to first position (no default)
     name: str = Form(...),
     description: str = Form(""),
     storage_type: str = Form(...),
     groups: str = Form("[]"),
     file: Optional[UploadFile] = FastAPIFile(None),
     terabox_url: Optional[str] = Form(None),
-    request: Request = None,
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
+    # Parse groups
     try:
         group_ids_raw = json.loads(groups)
-        # Ensure all IDs are integers
         group_ids = [int(x) for x in group_ids_raw]
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid groups format – must be a JSON list of integers")
@@ -81,8 +84,33 @@ async def upload_file(
         uploader_type="admin",
         file=file,
         terabox_url=terabox_url,
-        ip_address=request.client.host if request else None,
+        ip_address=request.client.host,
     )
+
+    await log_audit(
+        db,
+        action="upload_file",
+        admin_username=admin.username,
+        target_type="file",
+        target_id=str(new_file.id),
+        ip_address=request.client.host,
+    )
+
+    return FileOut(
+        id=new_file.id,
+        name=new_file.name,
+        description=new_file.description,
+        storage_type=new_file.storage_type.value,
+        mime_type=new_file.mime_type,
+        size=new_file.size,
+        groups=[g.name for g in new_file.groups],
+        uploader_type=new_file.uploader_type,
+        uploader_id=new_file.uploader_id,
+        status=new_file.status,
+        created_at=str(new_file.created_at),
+        updated_at=str(new_file.updated_at),
+    )
+
 
 @router.delete("/{file_id}", status_code=204)
 async def delete_file_endpoint(
@@ -102,6 +130,7 @@ async def delete_file_endpoint(
     )
     return
 
+
 @router.delete("/bulk", status_code=204)
 async def bulk_delete_files(
     file_ids: List[int],
@@ -120,6 +149,7 @@ async def bulk_delete_files(
         ip_address=request.client.host,
     )
     return
+
 
 @router.put("/{file_id}/groups")
 async def change_file_groups(
@@ -149,6 +179,7 @@ async def change_file_groups(
         ip_address=request.client.host,
     )
     return {"message": "Groups updated"}
+
 
 @router.put("/{file_id}/content")
 async def replace_file(

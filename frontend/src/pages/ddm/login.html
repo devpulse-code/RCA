@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDM - Passcode Login</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Keep styles separate – only minor inline for dynamic visibility */
+        .rate-limit-countdown { display: none; }
+    </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
@@ -13,15 +17,105 @@
         <form id="passcode-form" class="space-y-4">
             <div>
                 <label for="passcode" class="block text-sm font-medium text-gray-700">Passcode</label>
-                <input type="password" id="passcode" name="passcode" required
+                <input type="password" id="passcode" name="passcode" required autocomplete="off"
                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+            <button type="submit" id="submit-btn"
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
                 Sign In
             </button>
         </form>
         <p id="error-message" class="text-red-500 text-sm mt-3 hidden"></p>
+        <p id="rate-limit-countdown" class="text-amber-600 text-sm mt-2 hidden"></p>
     </div>
+
+    <script type="module">
+        import { passcodeLogin } from '../../services/ddm/auth-service.js';
+
+        const form = document.getElementById('passcode-form');
+        const passcodeInput = document.getElementById('passcode');
+        const submitBtn = document.getElementById('submit-btn');
+        const errorMessage = document.getElementById('error-message');
+        const rateLimitEl = document.getElementById('rate-limit-countdown');
+
+        let countdownInterval = null;
+
+        function clearError() {
+            errorMessage.classList.add('hidden');
+            errorMessage.textContent = '';
+            rateLimitEl.classList.add('hidden');
+            rateLimitEl.textContent = '';
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        function showError(text) {
+            errorMessage.textContent = text;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function showRateLimit(retryAfterSeconds) {
+            showError(`Too many attempts. Please wait.`);
+            rateLimitEl.classList.remove('hidden');
+            let seconds = retryAfterSeconds;
+            const update = () => {
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    rateLimitEl.textContent = 'You may try again.';
+                    return;
+                }
+                rateLimitEl.textContent = `Try again in ${seconds} second${seconds !== 1 ? 's' : ''}`;
+                seconds--;
+            };
+            update();
+            countdownInterval = setInterval(update, 1000);
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearError();
+            const passcode = passcodeInput.value.trim();
+            if (!passcode) {
+                showError('Please enter a passcode.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            try {
+                const result = await passcodeLogin(passcode);
+                // Success – redirect to dashboard
+                window.location.href = '../../pages/ddm/dashboard.html';
+            } catch (err) {
+                // Try to parse the error; the backend may return different shapes
+                let message = 'Login failed. Please try again.';
+                let retryAfter = null;
+                try {
+                    const body = typeof err.message === 'string' ? JSON.parse(err.message) : null;
+                    if (body && body.error === 'rate_limit_exceeded') {
+                        retryAfter = body.retry_after;
+                    } else if (body && body.detail) {
+                        message = body.detail;
+                    }
+                } catch (_) {
+                    // Use the raw error string
+                    message = err.message || message;
+                }
+
+                if (retryAfter) {
+                    showRateLimit(retryAfter);
+                } else {
+                    showError(message);
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
 </body>
 </html>
 <!-- end of RCA/frontend/src/pages/ddm/login.html -->

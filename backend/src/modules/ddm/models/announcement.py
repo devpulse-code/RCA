@@ -19,10 +19,11 @@ class Announcement(Base, TimestampMixin):
     title = Column(String, nullable=False)
     body = Column(Text, nullable=False)
     expiry = Column(DateTime, nullable=True)
-    # Relationship with groups: many‑to‑many, bidirectional
-    groups = relationship(
-        "Group",
-        secondary=announcement_group_association,
-        back_populates="announcements"
-    )
-# end of RCA/backend/src/modules/ddm/models/announcement.py
+
+    # Temporarily disabled – Group model doesn't yet define 'announcements'
+    # groups = relationship(
+    #     "Group",
+    #     secondary=announcement_group_association,
+    #     back_populates="announcements"
+    # )
+# end of RCA/backend/src/modules/ddm/models/announcement.pyc
