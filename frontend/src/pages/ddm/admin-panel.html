@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDM - Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/css/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
     <div id="error-banner" class="hidden bg-red-600 text-white p-3 text-center"></div>
@@ -39,7 +39,6 @@
             console.error(msg);
         }
 
-        // ---------- Session check ----------
         async function verifySession() {
             try {
                 const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
@@ -57,7 +56,6 @@
             }
         }
 
-        // ---------- Component loading ----------
         const titleEl = document.getElementById("section-title");
         const contentEl = document.getElementById("section-content");
 
@@ -68,14 +66,13 @@
             settings: "System Settings"
         };
 
-        // Lazy load components – they are self-rendering, no extra render call needed
         async function loadComponent(section) {
             contentEl.innerHTML = '<p>Loading…</p>';
             try {
                 switch (section) {
                     case "users": {
                         const { UserTable } = await import("../../components/ddm/admin/user-table.js");
-                        return new UserTable("section-content");   // renders itself
+                        return new UserTable("section-content");
                     }
                     case "files": {
                         const { FileTable } = await import("../../components/ddm/admin/file-table.js");
@@ -98,7 +95,6 @@
                         return new SettingsPanel("section-content");
                     }
                     case "groups": {
-                        // Groups placeholder
                         contentEl.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
                         return null;
                     }
@@ -120,14 +116,10 @@
             contentEl.innerHTML = "";
 
             loadComponent(section).then(comp => {
-                // Components render themselves in their constructor.
-                // If loading produced a null (e.g., groups placeholder), we already set innerHTML.
                 if (!comp) return;
-                // Some components might not follow the pattern, but the current ones do.
             });
         }
 
-        // ---------- Main ----------
         window.onerror = function(msg, url, line) {
             showError(`Module load error: ${msg} (${url}:${line})`);
         };
@@ -136,7 +128,6 @@
             const authenticated = await verifySession();
             if (!authenticated) return;
 
-            // Wire up sidebar navigation
             document.querySelectorAll("[data-section]").forEach(link => {
                 link.addEventListener("click", (e) => {
                     e.preventDefault();
@@ -146,11 +137,9 @@
                 });
             });
 
-            // Load initial section
             const initialSection = window.location.hash.replace("#", "") || "users";
             loadSection(initialSection);
 
-            // Logout handler
             document.getElementById("logout-btn").addEventListener("click", () => {
                 document.cookie = "admin_session=; Max-Age=0; path=/";
                 window.location.href = "/pages/ddm/admin-login.html";

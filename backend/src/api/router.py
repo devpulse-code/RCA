@@ -1,36 +1,53 @@
-# RCA/backend/src/api/router.py
-"""
-API main router.
+# RCA/backend/src/modules/ddm/api/router.py
 
-This router aggregates all module‑level routers (currently only DDM)
-and exposes a health‑check endpoint.
-"""
+from fastapi import APIRouter, Request, Depends
+from backend.src.core.db.database import get_db
+from backend.src.core.db.redis import get_redis
 
-from fastapi import APIRouter
+router = APIRouter(prefix="/api/ddm")
 
-# Absolute import matching the container package layout:
-# The code lives under /app/backend/src/, so the base package is backend.src.
-from backend.src.modules.ddm.api.router import router as ddm_router
-from backend.src.modules.ddm.api.auth.admin_login import router as auth_router
-from backend.src.modules.ddm.api.auth.session import router as session_router
+# Admin sub-routers
+from backend.src.modules.ddm.api.admin.users import router as admin_users_router
+from backend.src.modules.ddm.api.admin.groups import router as admin_groups_router
+from backend.src.modules.ddm.api.admin.files import router as admin_files_router
+from backend.src.modules.ddm.api.admin.upload_requests import router as admin_upload_router
+from backend.src.modules.ddm.api.admin.announcements import router as admin_announcements_router
+from backend.src.modules.ddm.api.admin.settings import router as admin_settings_router
+from backend.src.modules.ddm.api.admin.audit_log import router as admin_audit_log_router
+from backend.src.modules.ddm.api.admin import router as admin_root_router
 
-router = APIRouter()
+router.include_router(admin_root_router, prefix="/admin")
+router.include_router(admin_users_router, prefix="/admin")
+router.include_router(admin_groups_router, prefix="/admin")
+router.include_router(admin_files_router, prefix="/admin")
+router.include_router(admin_upload_router, prefix="/admin")
+router.include_router(admin_announcements_router, prefix="/admin")
+router.include_router(admin_settings_router, prefix="/admin")
+router.include_router(admin_audit_log_router, prefix="/admin")
 
-# Mount the DDM router (which already has its own prefix="/api/ddm")
-router.include_router(ddm_router)
+# Auth routes
+from backend.src.modules.ddm.api.auth.passcode_login import router as passcode_router
+from backend.src.modules.ddm.api.auth.session import router as session_router     # <-- ADD THIS
+router.include_router(passcode_router)
+router.include_router(session_router, prefix="/auth")                           # <-- ADD THIS
 
-# Mount the admin auth router under /api/auth
-router.include_router(auth_router, prefix="/api/auth")
+# Other DDM routes
+from backend.src.modules.ddm.api.files.download import router as download_router
+router.include_router(download_router)
 
-# Mount the session check endpoint under /api/ddm/auth (public)
-router.include_router(session_router, prefix="/api/ddm/auth")
+from backend.src.modules.ddm.api.files.upload import router as upload_router
+router.include_router(upload_router)
 
+from backend.src.modules.ddm.api.files.list import router as list_router
+router.include_router(list_router)
 
-@router.get("/api/health", tags=["health"])
-async def health_check():
-    """
-    Lightweight health endpoint.
-    Returns a simple JSON status message.
-    """
-    return {"status": "ok", "service": "DDM-Backend"}
-# end of RCA/backend/src/api/router.py
+from backend.src.modules.ddm.api.search.search import router as search_router
+router.include_router(search_router)
+
+from backend.src.modules.ddm.api.announcements.announcements import router as user_announcements_router
+router.include_router(user_announcements_router)
+
+from backend.src.modules.ddm.api.ai.chat import router as ai_router
+router.include_router(ai_router, prefix="/ai")
+
+# end of RCA/backend/src/modules/ddm/api/router.py

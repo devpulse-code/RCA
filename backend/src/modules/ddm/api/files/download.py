@@ -2,6 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.api.deps import get_current_user
 from backend.src.modules.ddm.models.file import File
@@ -13,14 +15,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/api/files/{file_id}/download")
+@router.get("/files/{file_id}/download")
 async def download_file(
     file_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    file_record = await db.get(File, file_id)
+    # Eagerly load groups to avoid MissingGreenlet error
+    result = await db.execute(
+        select(File).options(selectinload(File.groups)).where(File.id == file_id)
+    )
+    file_record = result.scalars().first()
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -33,7 +39,7 @@ async def download_file(
     await log_audit(
         db,
         action="file_download",
-        admin_username=f"user:{user.id}",  # distinguish user from admin
+        admin_username=f"user:{user.id}",
         target_type="file",
         target_id=str(file_id),
         details={"file_name": file_record.name, "user_id": user.id},

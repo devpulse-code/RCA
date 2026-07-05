@@ -2,7 +2,8 @@
 import { apiClient } from "../api-client.js";
 
 export async function fetchUserFiles() {
-  return await apiClient.get("/api/ddm/files");
+  // Remove the leading "/api" — apiClient already adds it
+  return await apiClient.get("/ddm/files");
 }
 
 export async function downloadFile(fileId) {
@@ -20,22 +21,22 @@ export async function downloadFile(fileId) {
 }
 
 export async function submitUploadRequest(formData) {
-  // Use the apiUpload function for multipart
   const { apiUpload } = await import("../api-client.js");
-  return await apiUpload("/api/ddm/files/request", formData);
+  // Same here – remove the "/api" prefix
+  return await apiUpload("/ddm/files/request", formData);
 }
 
-// Admin operations – now placed here for convenience (but admin table uses AdminService directly)
+// Admin operations (unchanged – they already use correct paths)
 export async function fetchFiles() {
-  return await apiClient.get("/api/ddm/admin/");
+  return await apiClient.get("/ddm/admin/");
 }
 
 export async function deleteFile(fileId) {
-  await apiClient.delete(`/api/ddm/admin/${fileId}`);
+  await apiClient.delete(`/ddm/admin/${fileId}`);
 }
 
 export async function bulkDeleteFiles(fileIds) {
-  await apiClient.delete("/api/ddm/admin/bulk", { data: fileIds });
+  await apiClient.delete("/ddm/admin/bulk", { data: fileIds });
 }
 
 export async function replaceFile(fileId, formData) {

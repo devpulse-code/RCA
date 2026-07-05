@@ -13,19 +13,29 @@ export class FileList {
   async load() {
     try {
       const raw = await FileService.fetchUserFiles();
-      // Ensure we always have an array, even if the API response is malformed
       this.files = Array.isArray(raw) ? raw : [];
-      this.render();
     } catch (e) {
-      showToast(e.message || "Failed to load files", "error");
+      // Show a toast and also display an error in the file list area
+      try {
+        showToast(e.message || "Failed to load files", "error");
+      } catch (_) {
+        // toast container may be missing – ignore
+      }
+      this.files = null;   // signal error state
+      console.error("File fetch error:", e);
     }
+    this.render();
   }
 
   render() {
     if (!this.container) return;
+    if (this.files === null) {
+      // Error state
+      this.container.innerHTML = `<p class="text-red-500">Could not load files. Please refresh or try again later.</p>`;
+      return;
+    }
     if (!Array.isArray(this.files)) {
-      console.error("this.files is not an array:", this.files);
-      this.container.innerHTML = '<p class="text-gray-500">Error loading files.</p>';
+      this.container.innerHTML = `<p class="text-gray-500">Unexpected data received.</p>`;
       return;
     }
     this.container.innerHTML = this.files.length

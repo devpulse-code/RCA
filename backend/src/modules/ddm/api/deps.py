@@ -1,11 +1,12 @@
 # RCA/backend/src/modules/ddm/api/deps.py
 from fastapi import Request, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.src.core.db.database import get_db
 from backend.src.core.db.redis import get_redis
 from backend.src.modules.ddm.models.admin import Admin
 from backend.src.modules.ddm.models.user import User
-from sqlalchemy import select
 
 
 async def get_current_admin(
@@ -43,7 +44,11 @@ async def get_current_user(
     if not user_id:
         raise HTTPException(status_code=401, detail="Session expired or invalid")
 
-    user = await db.get(User, int(user_id))
+    # Eagerly load groups so they are available without additional queries
+    result = await db.execute(
+        select(User).options(selectinload(User.groups)).where(User.id == int(user_id))
+    )
+    user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 

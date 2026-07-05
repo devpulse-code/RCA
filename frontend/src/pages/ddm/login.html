@@ -5,9 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDM - Passcode Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/css/tailwind.min.css" rel="stylesheet">
     <style>
-        /* Keep styles separate – only minor inline for dynamic visibility */
         .rate-limit-countdown { display: none; }
     </style>
 </head>
@@ -86,11 +85,9 @@
             submitBtn.textContent = 'Signing in...';
 
             try {
-                const result = await passcodeLogin(passcode);
-                // Success – redirect to dashboard
+                await passcodeLogin(passcode);
                 window.location.href = '../../pages/ddm/dashboard.html';
             } catch (err) {
-                // Try to parse the error; the backend may return different shapes
                 let message = 'Login failed. Please try again.';
                 let retryAfter = null;
                 try {
@@ -101,7 +98,6 @@
                         message = body.detail;
                     }
                 } catch (_) {
-                    // Use the raw error string
                     message = err.message || message;
                 }
 
