@@ -1,0 +1,66 @@
+/* RCA/frontend/src/css/rca-home.css */
+:root {
+    --accent: #0D5E8C;
+    --accent-light: rgba(13,94,140,0.1);
+    --text: #1a1a1a;
+    --gray: #6b7280;
+    --bg: #ffffff;
+}
+
+body {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+}
+
+/* Typography reveal */
+.char-reveal {
+    display: inline-block;
+    transform: translateY(100%);
+    opacity: 0;
+    animation: revealChar 0.5s forwards ease-out;
+}
+@keyframes revealChar {
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Hero visual SVG */
+#network-globe circle {
+    fill: var(--accent);
+    opacity: 0.2;
+}
+#network-globe line {
+    stroke: var(--accent);
+    stroke-opacity: 0.15;
+    stroke-width: 1;
+}
+
+/* Feature items */
+.feature-item {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+}
+.feature-item.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.feature-number {
+    user-select: none;
+}
+
+/* Button shadows */
+.shadow-accent\/30 {
+    box-shadow: 0 10px 20px -5px rgba(13,94,140,0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero {
+        flex-direction: column;
+    }
+    .feature-number {
+        font-size: 5rem;
+    }
+}
+/* end of RCA/frontend/src/css/rca-home.css */
