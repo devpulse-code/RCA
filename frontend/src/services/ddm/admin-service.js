@@ -1,9 +1,22 @@
 // RCA/frontend/src/services/ddm/admin-service.js
 import { apiClient } from "../api-client.js";
 
-// Users
+// --------------- Utility to ensure an array from API response ---------------
+function asArray(response) {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === 'object') {
+    // Common wrapping keys
+    for (const key of ['data', 'files', 'results', 'items']) {
+      if (Array.isArray(response[key])) return response[key];
+    }
+  }
+  // Fallback: return empty array so .map() never fails
+  return [];
+}
+
+// --------------- Users ---------------
 export async function getUsers() {
-  return apiClient.get("/ddm/admin/users/");
+  return asArray(await apiClient.get("/ddm/admin/users/"));
 }
 export async function createUser(data) {
   return apiClient.post("/ddm/admin/users/", data);
@@ -21,14 +34,16 @@ export async function bulkRevokePasscodes(ids) {
   return apiClient.post("/ddm/admin/users/bulk-revoke-passcodes", ids);
 }
 
-// Groups
+// --------------- Groups ---------------
 export async function fetchGroups() {
-  return apiClient.get("/ddm/admin/groups/");
+  const data = await apiClient.get("/ddm/admin/groups/");
+  return asArray(data);
 }
 
-// Files (admin)
+// --------------- Files (admin) ---------------
 export async function getFiles() {
-  return apiClient.get("/ddm/admin/");
+  const data = await apiClient.get("/ddm/admin/");
+  return asArray(data);
 }
 export async function deleteFile(id) {
   await apiClient.delete(`/ddm/admin/${id}`);
@@ -53,7 +68,7 @@ export async function uploadFile(formData) {
   return response.json();
 }
 
-// Upload requests
+// --------------- Upload requests ---------------
 export async function getUploadRequests() {
   return apiClient.get("/ddm/admin/upload-requests");
 }
@@ -64,7 +79,7 @@ export async function rejectUploadRequest(fileId) {
   await apiClient.post(`/ddm/admin/upload-requests/${fileId}/reject`);
 }
 
-// Announcements
+// --------------- Announcements ---------------
 export async function fetchAnnouncements() {
   return apiClient.get("/ddm/admin/announcements/");
 }
@@ -81,7 +96,7 @@ export async function bulkDeleteAnnouncements(ids) {
   await apiClient.delete("/ddm/admin/announcements/bulk", { data: ids });
 }
 
-// Settings
+// --------------- Settings ---------------
 export async function fetchSettings() {
   return apiClient.get("/ddm/admin/settings");
 }
@@ -89,7 +104,7 @@ export async function updateSettings(data) {
   return apiClient.put("/ddm/admin/settings", data);
 }
 
-// Audit Log
+// --------------- Audit Log ---------------
 export async function fetchAuditLogs(params = {}) {
   return apiClient.get("/ddm/admin/audit-log", { params });
 }

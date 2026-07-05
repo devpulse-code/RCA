@@ -13,10 +13,14 @@ export class FileTable {
 
   async load() {
     try {
-      this.files = await AdminService.getFiles();
+      const data = await AdminService.getFiles();
+      // Defensive check: ensure data is an array even if asArray failed
+      this.files = Array.isArray(data) ? data : [];
       this.render();
     } catch (e) {
       showToast(e.message, "error");
+      this.files = [];  // Ensure this.files stays an array on error
+      this.render();    // Render empty table instead of broken state
     }
   }
 
@@ -109,7 +113,8 @@ export class FileTable {
   async showUploadModal() {
     let groups = [];
     try {
-      groups = await AdminService.fetchGroups();
+      const data = await AdminService.fetchGroups();
+      groups = Array.isArray(data) ? data : [];
     } catch (e) { /* ignore */ }
 
     const groupOptions = groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
@@ -165,7 +170,6 @@ export class FileTable {
         formData.append("description", form.description.value || "");
         formData.append("storage_type", form.storage_type.value);
 
-        // Convert group IDs to integers before sending
         const selectedGroups = Array.from(form.groups.selectedOptions).map(o => parseInt(o.value, 10));
         formData.append("groups", JSON.stringify(selectedGroups));
 

@@ -41,22 +41,21 @@
 
         // ---------- Session check ----------
         async function verifySession() {
-    try {
-        const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.role === 'admin') {
-                return true;
+            try {
+                const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.role === 'admin') {
+                        return true;
+                    }
+                }
+                window.location.href = '/pages/ddm/admin-login.html';
+                return false;
+            } catch (e) {
+                showError('Backend unreachable');
+                return false;
             }
         }
-        // Not admin or not logged in
-        window.location.href = '/pages/ddm/admin-login.html';
-        return false;
-    } catch (e) {
-        showError('Backend unreachable');
-        return false;
-    }
-}
 
         // ---------- Component loading ----------
         const titleEl = document.getElementById("section-title");
@@ -69,14 +68,14 @@
             settings: "System Settings"
         };
 
-        // Lazy load components only when needed
+        // Lazy load components – they are self-rendering, no extra render call needed
         async function loadComponent(section) {
             contentEl.innerHTML = '<p>Loading…</p>';
             try {
                 switch (section) {
                     case "users": {
                         const { UserTable } = await import("../../components/ddm/admin/user-table.js");
-                        return new UserTable("section-content");
+                        return new UserTable("section-content");   // renders itself
                     }
                     case "files": {
                         const { FileTable } = await import("../../components/ddm/admin/file-table.js");
@@ -99,11 +98,9 @@
                         return new SettingsPanel("section-content");
                     }
                     case "groups": {
-                        return {
-                            render(container) {
-                                container.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
-                            }
-                        };
+                        // Groups placeholder
+                        contentEl.innerHTML = `<p class="text-gray-500">Group management placeholder.</p>`;
+                        return null;
                     }
                     default:
                         return null;
@@ -123,11 +120,10 @@
             contentEl.innerHTML = "";
 
             loadComponent(section).then(comp => {
-                if (comp && typeof comp.render === "function") {
-                    comp.render(contentEl);
-                } else if (!comp) {
-                    // fallback already set inside loadComponent
-                }
+                // Components render themselves in their constructor.
+                // If loading produced a null (e.g., groups placeholder), we already set innerHTML.
+                if (!comp) return;
+                // Some components might not follow the pattern, but the current ones do.
             });
         }
 

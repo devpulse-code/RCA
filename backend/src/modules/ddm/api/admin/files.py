@@ -1,9 +1,10 @@
-# backend/src/modules/ddm/api/admin/files.py
+# RCA/backend/src/modules/ddm/api/admin/files.py
 
 import json
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File as FastAPIFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.api.deps import get_current_admin
@@ -27,15 +28,15 @@ async def list_files(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    result = await db.execute(select(File))
-    files = result.scalars().all()
+    # Eagerly load the groups relationship to avoid DetachedInstanceError
+    result = await db.execute(
+        select(File).options(selectinload(File.groups))
+    )
+    files = result.scalars().unique().all()
     out = []
     for f in files:
-        # fetch group names explicitly to avoid greenlet errors
-        group_result = await db.execute(
-            select(Group).where(Group.id.in_([g.id for g in f.groups]))
-        )
-        group_objs = group_result.scalars().all()
+        # groups is now a loaded list of Group objects; extract names
+        group_names = [g.name for g in f.groups]
         out.append(FileOut(
             id=f.id,
             name=f.name,
@@ -43,7 +44,7 @@ async def list_files(
             storage_type=f.storage_type.value,
             mime_type=f.mime_type,
             size=f.size,
-            groups=[g.name for g in group_objs],
+            groups=group_names,
             uploader_type=f.uploader_type,
             uploader_id=f.uploader_id,
             status=f.status,
@@ -93,10 +94,12 @@ async def upload_file(
         ip_address=request.client.host,
     )
 
-    # Fetch group names explicitly to avoid greenlet lazy load
+    # Fetch group names explicitly (the new_file object may have groups loaded, but we do it safely)
     group_names = []
     if group_ids:
-        group_result = await db.execute(select(Group).where(Group.id.in_(group_ids)))
+        group_result = await db.execute(
+            select(Group).where(Group.id.in_(group_ids))
+        )
         group_objs = group_result.scalars().all()
         group_names = [g.name for g in group_objs]
 
@@ -239,4 +242,4 @@ async def replace_file(
         created_at=str(file_record.created_at),
         updated_at=str(file_record.updated_at),
     )
-# end of backend/src/modules/ddm/api/admin/files.py
+# end of RCA/backend/src/modules/ddm/api/admin/files.py
