@@ -113,6 +113,12 @@ app.add_middleware(SessionMiddleware)
 app.include_router(core_router)
 
 
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for container orchestration."""
+    return {"status": "healthy"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.src.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,16 +1,27 @@
-<!-- D:\Development\Website\rca-platform\frontend\src\pages\home.html -->
+<!-- RCA/frontend/src/pages/home.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Home - DDM</title>
-    <link rel="stylesheet" href="/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCA · The Observatory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/home.css">
 </head>
-<body class="min-h-screen flex items-center justify-center">
-    <div class="text-center">
-        <h1 class="text-3xl font-bold">Welcome to DDM</h1>
-        <p class="mt-2"><a href="/pages/ddm/login.html" class="text-blue-600 underline">Go to Login</a></p>
+<body>
+
+    <canvas id="observatory-canvas"></canvas>
+
+    <div id="access-node" class="node-hidden">
+        <span class="node-text">DDM ACCESS</span>
+        <svg class="node-shape" viewBox="0 0 200 60">
+            <polygon points="100,10 190,30 190,50 100,70 10,50 10,30" fill="none" stroke-width="2"/>
+        </svg>
     </div>
+
+    <script src="/js/home.js"></script>
 </body>
 </html>
-<!-- end of D:\Development\Website\rca-platform\frontend\src\pages\home.html -->
+<!-- end of RCA/frontend/src/pages/home.html -->
