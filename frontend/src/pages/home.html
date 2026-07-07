@@ -7,18 +7,65 @@
     <title>RCA · The Observatory</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/home.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap"
+        rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/home.css" />
 </head>
 <body>
-
+    <!-- Constellation Canvas -->
     <canvas id="observatory-canvas"></canvas>
 
-    <div id="access-node" class="node-hidden">
-        <span class="node-text">DDM ACCESS</span>
-        <svg class="node-shape" viewBox="0 0 200 60">
-            <polygon points="100,10 190,30 190,50 100,70 10,50 10,30" fill="none" stroke-width="2"/>
-        </svg>
+    <!-- Overlay content -->
+    <div class="observatory-main">
+        <!-- Top bar with admin link -->
+        <div class="top-bar">
+            <a href="/pages/ddm/admin-login.html" class="admin-link">
+                <span class="star-icon" aria-hidden="true">★</span> Admin
+            </a>
+        </div>
+
+        <!-- Content grid -->
+        <div class="content-grid">
+            <div class="brand-pillar">
+                <span class="wordmark">RCA</span>
+                <div class="nav-dots">
+                    <span class="dot active"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+
+            <div class="content-plane">
+                <h1 class="typing-headline" id="headline"></h1>
+                <p class="mission-line">
+                    A secure, AI‑augmented research platform.<br>
+                    Observe. Analyse. Connect.
+                </p>
+
+                <button class="access-node" id="ddm-access-btn">
+                    <span class="node-ring"></span>
+                    <span class="node-label">Enter DDM</span>
+                    <span class="node-arrow">→</span>
+                </button>
+            </div>
+
+            <aside class="data-strip">
+                <div class="data-point">
+                    <span class="data-label">Documents Indexed</span>
+                    <span class="data-value" id="doc-count">—</span>
+                </div>
+                <div class="data-point">
+                    <span class="data-label">Active Sessions</span>
+                    <span class="data-value" id="session-count">—</span>
+                </div>
+                <div class="data-point">
+                    <span class="data-label">Last Update</span>
+                    <span class="data-value" id="last-update">—</span>
+                </div>
+            </aside>
+        </div>
     </div>
 
     <script src="/js/home.js"></script>

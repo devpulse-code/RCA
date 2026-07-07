@@ -16,7 +16,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Redirect after fade-out
     setTimeout(() => {
-        window.location.href = '/index.html';   // or '/pages/ddm/login.html' if you prefer
+        window.location.href = '/pages/home.html';   // or '/pages/ddm/login.html' if you prefer
     }, 4000);
 });
 // end of RCA/frontend/src/js/splash.js

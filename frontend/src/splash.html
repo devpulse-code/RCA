@@ -5,138 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RCA</title>
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&display=swap" rel="stylesheet">
-    <style>
-        /* ========== Splash Design – Embedded Styles ========== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #0A0D14;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-            font-family: 'Playfair Display', serif;
-            transition: opacity 0.8s ease;
-        }
-        body.fade-out {
-            opacity: 0;
-        }
-
-        .splash-container {
-            text-align: center;
-        }
-
-        .wordmark {
-            font-size: 9rem;
-            font-weight: 900;
-            letter-spacing: 0.08em;
-            line-height: 1;
-            color: #E1E6EC;
-            display: flex;
-            justify-content: center;
-        }
-
-        .letter {
-            display: inline-block;
-            opacity: 0;
-            transform: translateY(40px);
-            animation: letterReveal 0.7s ease-out forwards;
-        }
-
-        .letter.accent {
-            color: #0D5E8C;
-            animation-name: letterRevealAccent;
-        }
-
-        /* Staggered delays */
-        .letter:nth-child(1) { animation-delay: 0.2s; }
-        .letter:nth-child(2) { animation-delay: 0.35s; }
-        .letter:nth-child(3) { animation-delay: 0.5s; }
-
-        /* Loading bar wrapper – hidden until letters appear */
-        .loading-bar {
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #0D5E8C, transparent);
-            margin: 2rem auto 0;
-            transition: width 1.2s ease;
-            max-width: 120px;
-        }
-        .loading-bar.active {
-            width: 120px;
-        }
-
-        /* Subtle background glow */
-        .bg-glow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(13,94,140,0.15) 0%, transparent 70%);
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            animation: pulseGlow 3s infinite alternate;
-        }
-
-        @keyframes letterReveal {
-            0% {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes letterRevealAccent {
-            0% {
-                opacity: 0;
-                transform: translateY(40px) scale(0.9);
-            }
-            60% {
-                opacity: 1;
-                transform: translateY(0) scale(1.05);
-                text-shadow: 0 0 15px rgba(13,94,140,0.6);
-            }
-            100% {
-                transform: translateY(0) scale(1);
-                text-shadow: 0 0 30px rgba(13,94,140,0.4);
-            }
-        }
-
-        @keyframes pulseGlow {
-            from { opacity: 0.4; }
-            to { opacity: 0.8; }
-        }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            .wordmark {
-                font-size: 5rem;
-            }
-            .loading-bar {
-                max-width: 80px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/css/splash.css">
 </head>
 <body>
-
-    <!-- Background glow -->
     <div class="bg-glow"></div>
-
-    <!-- Splash content -->
     <div class="splash-container">
         <div class="wordmark">
             <span class="letter">R</span>
@@ -145,8 +20,6 @@
         </div>
         <div class="loading-bar" id="loading-bar"></div>
     </div>
-
-    <!-- Minimal JS for timing and redirect -->
     <script src="/js/splash.js"></script>
 </body>
 </html>

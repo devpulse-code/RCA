@@ -1,0 +1,118 @@
+/* RCA/frontend/src/css/ddm-admin-panel.css */
+:root {
+    --bg-deep: #07090F;
+    --accent: #0D5E8C;
+    --text-main: #E1E6EC;
+    --text-dim: #7B8494;
+    --font-display: 'Playfair Display', serif;
+    --font-ui: 'Space Grotesk', sans-serif;
+    --font-mono: 'Source Code Pro', monospace;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-deep);
+    font-family: var(--font-ui);
+    color: var(--text-main);
+    display: flex;
+    min-height: 100vh;
+}
+
+.error-banner {
+    background: rgba(220,38,38,0.9);
+    color: white;
+    padding: 0.8rem;
+    text-align: center;
+    display: none;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.sidebar {
+    width: 260px;
+    background: rgba(10,13,20,0.9);
+    border-right: 1px solid rgba(13,94,140,0.2);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sidebar h2 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(13,94,140,0.4);
+    margin-bottom: 1rem;
+}
+
+.sidebar nav a {
+    display: block;
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+.sidebar nav a:hover,
+.sidebar nav a.active {
+    background: rgba(13,94,140,0.15);
+    color: var(--text-main);
+}
+
+.logout-btn {
+    margin-top: auto;
+    background: transparent;
+    border: 1px solid rgba(239,68,68,0.4);
+    color: #ef4444;
+    padding: 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.logout-btn:hover {
+    background: rgba(239,68,68,0.1);
+    border-color: #ef4444;
+}
+
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.main-content h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: var(--text-main);
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        padding: 1rem;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .sidebar h2 {
+        margin: 0 1rem 0 0;
+        font-size: 1.5rem;
+    }
+    .logout-btn {
+        margin-top: 0;
+    }
+}
+/* end of RCA/frontend/src/css/ddm-admin-panel.css */

@@ -1,6 +1,15 @@
 /* RCA/frontend/src/css/home.css */
+:root {
+    --bg-deep: #07090F;
+    --accent: #0D5E8C;
+    --accent-soft: #1A7CB5;
+    --text-main: #E1E6EC;
+    --text-dim: #7B8494;
+    --font-display: 'Playfair Display', serif;
+    --font-ui: 'Space Grotesk', sans-serif;
+    --font-mono: 'Source Code Pro', monospace;
+}
 
-/* ---------- GLOBAL ---------- */
 * {
     margin: 0;
     padding: 0;
@@ -8,109 +17,293 @@
 }
 
 body {
-    background: #050508;
+    background: var(--bg-deep);
     overflow: hidden;
-    font-family: 'Source Code Pro', monospace;
-    cursor: none;           /* custom reticle via canvas */
+    font-family: var(--font-ui);
+    color: var(--text-main);
     height: 100vh;
     width: 100vw;
     position: relative;
 }
 
-/* subtle noise overlay for texture */
-body::after {
-    content: '';
-    position: fixed;
+/* Canvas fills the background */
+#observatory-canvas {
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 2;
+    z-index: 0;
 }
 
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1;
-}
-
-/* ---------- ACCESS NODE ---------- */
-#access-node {
-    position: absolute;
-    bottom: 15%;
-    left: 50%;
-    transform: translate(-50%, 0);
-    width: 220px;
-    height: 80px;
+/* Main overlay container (now a column) */
+.observatory-main {
+    position: relative;
     z-index: 10;
     display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Top bar for admin link */
+.top-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1.2rem 2rem 0 2rem;
+}
+
+.admin-link {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    opacity: 0.6;
+}
+
+.admin-link:hover {
+    color: var(--accent);
+    opacity: 1;
+}
+
+.star-icon {
+    font-size: 1.1em;
+    line-height: 1;
+}
+
+/* Content grid (three columns) */
+.content-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr 280px;
+    flex: 1;
+    padding: 0 2rem 3rem 2rem;
+}
+
+/* ---- Brand Pillar (left) ---- */
+.brand-pillar {
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    pointer-events: auto;
-    cursor: pointer;
-    transition: opacity 0.6s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s;
-    opacity: 0;
-    filter: blur(6px);
+    padding-top: 1rem;
 }
 
-.node-hidden {
-    opacity: 0;
-    filter: blur(6px);
-    pointer-events: none;
-}
-
-.node-visible {
-    opacity: 1;
-    filter: blur(0);
-}
-
-.node-text {
-    font-family: 'Playfair Display', serif;
+.wordmark {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
     font-weight: 700;
+    color: var(--accent);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 20px rgba(13,94,140,0.5);
+    user-select: none;
+}
+
+.nav-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: auto;
+    padding-bottom: 2rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    opacity: 0.3;
+    transition: opacity 0.3s;
+}
+.dot.active {
+    opacity: 1;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+}
+
+/* ---- Content Plane (center) ---- */
+.content-plane {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 3rem;
+}
+
+.typing-headline {
+    font-family: var(--font-mono);
+    font-size: 3.2rem;
+    font-weight: 600;
+    color: var(--text-main);
+    min-height: 4rem;
+    line-height: 1.2;
+    position: relative;
+}
+
+.typing-headline::after {
+    content: '▊';
+    animation: blink 1s step-end infinite;
+    color: var(--accent);
+    margin-left: 0.2rem;
+    font-weight: 400;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.mission-line {
+    margin-top: 1.5rem;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+    max-width: 440px;
+}
+
+/* Access node button */
+.access-node {
+    position: relative;
+    margin-top: 3.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0;
+    color: var(--text-main);
+    transition: transform 0.3s ease;
+}
+
+.access-node:hover {
+    transform: translateX(10px);
+}
+
+.node-ring {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(13,94,140,0.4);
+    transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.access-node:hover .node-ring {
+    border-color: var(--accent-soft);
+    box-shadow: 0 0 25px rgba(13,94,140,0.7);
+}
+
+.node-label {
+    font-family: var(--font-mono);
     font-size: 1.4rem;
-    letter-spacing: 0.2em;
-    color: #E1E6EC;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.node-arrow {
+    font-size: 1.6rem;
+    transition: transform 0.3s;
+}
+
+.access-node:hover .node-arrow {
+    transform: translateX(5px);
+}
+
+/* ---- Data Strip (right) ---- */
+.data-strip {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2rem;
+    padding-right: 1rem;
+}
+
+.data-point {
+    border-left: 2px solid var(--accent);
+    padding-left: 1rem;
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.data-point:hover {
+    opacity: 1;
+}
+
+.data-label {
+    display: block;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    position: absolute;
-    z-index: 2;
-    text-shadow: 0 0 12px rgba(13,94,140,0.7);
-    transition: text-shadow 0.3s;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
 }
 
-.node-shape {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    stroke: #0D5E8C;
-    stroke-dasharray: 10 6;
-    animation: hexPulse 2.5s infinite alternate;
+.data-value {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-top: 0.25rem;
 }
 
-#access-node:hover .node-text {
-    text-shadow: 0 0 20px rgba(13,94,140,1), 0 0 50px rgba(13,94,140,0.8);
-    animation: glitchText 0.3s infinite;
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .content-grid {
+        grid-template-columns: 80px 1fr 200px;
+        padding: 0 1rem 2rem 1rem;
+    }
+    .typing-headline {
+        font-size: 2.4rem;
+    }
 }
 
-#access-node:hover .node-shape {
-    stroke: #1E90FF;
-    stroke-dasharray: 3 12;
+@media (max-width: 640px) {
+    .top-bar {
+        padding: 0.8rem 1.5rem 0 1.5rem;
+    }
+    .content-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        gap: 1.5rem;
+        padding: 0 1.5rem 2rem 1.5rem;
+    }
+    .brand-pillar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0;
+    }
+    .wordmark {
+        writing-mode: horizontal-tb;
+        font-size: 2.5rem;
+    }
+    .nav-dots {
+        flex-direction: row;
+        margin: 0;
+        padding: 0;
+    }
+    .content-plane {
+        padding-left: 0;
+    }
+    .typing-headline {
+        font-size: 2rem;
+    }
+    .data-strip {
+        flex-direction: row;
+        justify-content: space-around;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding-top: 1rem;
+        padding-right: 0;
+    }
+    .data-point {
+        border-left: none;
+        padding-left: 0;
+    }
 }
-
-@keyframes hexPulse {
-    from { stroke-opacity: 0.6; }
-    to { stroke-opacity: 1; }
-}
-
-@keyframes glitchText {
-    0% { transform: translate(0); }
-    20% { transform: translate(-2px, 1px); }
-    40% { transform: translate(2px, -1px); }
-    60% { transform: translate(-1px, -1px); }
-    80% { transform: translate(1px, 2px); }
-    100% { transform: translate(0); }
-}
-
 /* end of RCA/frontend/src/css/home.css */

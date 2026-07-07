@@ -4,115 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDM - Passcode Login</title>
-    <link href="/css/tailwind.min.css" rel="stylesheet">
-    <style>
-        .rate-limit-countdown { display: none; }
-    </style>
+    <title>DDM – Passcode Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ddm-login.css">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <a href="/" class="block text-center text-sm text-platinum/40 hover:text-accent transition-colors mb-6">← Back to RCA Home</a>
-    <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
-        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">DDM Login</h1>
-        <form id="passcode-form" class="space-y-4">
-            <div>
-                <label for="passcode" class="block text-sm font-medium text-gray-700">Passcode</label>
-                <input type="password" id="passcode" name="passcode" required autocomplete="off"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <button type="submit" id="submit-btn"
-                    class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
-                Sign In
-            </button>
-        </form>
-        <p id="error-message" class="text-red-500 text-sm mt-3 hidden"></p>
-        <p id="rate-limit-countdown" class="text-amber-600 text-sm mt-2 hidden"></p>
+<body>
+    <div class="login-container">
+        <a href="/" class="home-link">← Back to RCA Home</a>
+        <div class="card">
+            <h1>DDM Login</h1>
+            <form id="passcode-form">
+                <div class="form-group">
+                    <label for="passcode">Passcode</label>
+                    <input type="password" id="passcode" name="passcode" required autocomplete="off" placeholder="Enter your passcode">
+                </div>
+                <button type="submit" id="submit-btn" class="submit-btn">Sign In</button>
+            </form>
+            <p id="error-message" class="error-message"></p>
+            <p id="rate-limit-countdown" class="rate-limit-message"></p>
+        </div>
     </div>
-
-    <script type="module">
-        import { passcodeLogin } from '../../services/ddm/auth-service.js';
-
-        const form = document.getElementById('passcode-form');
-        const passcodeInput = document.getElementById('passcode');
-        const submitBtn = document.getElementById('submit-btn');
-        const errorMessage = document.getElementById('error-message');
-        const rateLimitEl = document.getElementById('rate-limit-countdown');
-
-        let countdownInterval = null;
-
-        function clearError() {
-            errorMessage.classList.add('hidden');
-            errorMessage.textContent = '';
-            rateLimitEl.classList.add('hidden');
-            rateLimitEl.textContent = '';
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-        }
-
-        function showError(text) {
-            errorMessage.textContent = text;
-            errorMessage.classList.remove('hidden');
-        }
-
-        function showRateLimit(retryAfterSeconds) {
-            showError(`Too many attempts. Please wait.`);
-            rateLimitEl.classList.remove('hidden');
-            let seconds = retryAfterSeconds;
-            const update = () => {
-                if (seconds <= 0) {
-                    clearInterval(countdownInterval);
-                    rateLimitEl.textContent = 'You may try again.';
-                    return;
-                }
-                rateLimitEl.textContent = `Try again in ${seconds} second${seconds !== 1 ? 's' : ''}`;
-                seconds--;
-            };
-            update();
-            countdownInterval = setInterval(update, 1000);
-        }
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            clearError();
-            const passcode = passcodeInput.value.trim();
-            if (!passcode) {
-                showError('Please enter a passcode.');
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Signing in...';
-
-            try {
-                await passcodeLogin(passcode);
-                window.location.href = '../../pages/ddm/dashboard.html';
-            } catch (err) {
-                let message = 'Login failed. Please try again.';
-                let retryAfter = null;
-                try {
-                    const body = typeof err.message === 'string' ? JSON.parse(err.message) : null;
-                    if (body && body.error === 'rate_limit_exceeded') {
-                        retryAfter = body.retry_after;
-                    } else if (body && body.detail) {
-                        message = body.detail;
-                    }
-                } catch (_) {
-                    message = err.message || message;
-                }
-
-                if (retryAfter) {
-                    showRateLimit(retryAfter);
-                } else {
-                    showError(message);
-                }
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Sign In';
-            }
-        });
-    </script>
+    <script type="module" src="/js/ddm-login.js"></script>
 </body>
 </html>
 <!-- end of RCA/frontend/src/pages/ddm/login.html -->

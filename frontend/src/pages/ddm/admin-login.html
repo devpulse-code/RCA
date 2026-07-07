@@ -4,147 +4,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDM Admin - Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>DDM Admin – Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ddm-admin-login.css">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="w-full max-w-md bg-white p-8 rounded shadow-lg">
-        <h1 class="text-2xl font-bold mb-6 text-center">Admin Login</h1>
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">Username</label>
-                <input type="text" id="username" class="w-full border rounded px-3 py-2" required>
+<body>
+    <div class="login-wrapper">
+        <div class="card">
+            <h1>Admin Login</h1>
+            <!-- Login form -->
+            <div id="login-section">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                </form>
             </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Password</label>
-                <input type="password" id="password" class="w-full border rounded px-3 py-2" required>
+            <!-- TOTP prompt -->
+            <div id="totp-section" class="hidden-section">
+                <p class="prompt-text">Enter the 6‑digit code from your authenticator app.</p>
+                <div class="form-group">
+                    <input type="text" id="totp-code" placeholder="000000" maxlength="6">
+                </div>
+                <button id="totp-submit" class="btn">Verify</button>
+                <button id="show-recovery" class="secondary-btn">Use Recovery Code</button>
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
-        </form>
-        <!-- 2FA and recovery code prompts (hidden initially) -->
-        <div id="totp-prompt" class="hidden mt-6 space-y-4">
-            <p class="text-sm text-gray-600">Enter the 6‑digit code from your authenticator app.</p>
-            <input type="text" id="totp-code" class="w-full border rounded px-3 py-2" placeholder="000000">
-            <button id="totp-submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Verify</button>
+            <!-- Recovery code prompt -->
+            <div id="recovery-section" class="hidden-section">
+                <p class="prompt-text">Enter one of your recovery codes.</p>
+                <div class="form-group">
+                    <input type="text" id="recovery-code">
+                </div>
+                <button id="recovery-submit" class="btn">Verify</button>
+            </div>
+            <p id="error-message" class="error-message"></p>
         </div>
-        <div id="recovery-prompt" class="hidden mt-6 space-y-4">
-            <p class="text-sm text-gray-600">Enter one of your recovery codes.</p>
-            <input type="text" id="recovery-code" class="w-full border rounded px-3 py-2">
-            <button id="recovery-submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Verify</button>
-        </div>
-        <p id="error-message" class="text-red-500 text-sm mt-4 hidden"></p>
     </div>
-
-    <script type="module">
-        const form = document.getElementById("login-form");
-        const errorMsg = document.getElementById("error-message");
-        const totpPrompt = document.getElementById("totp-prompt");
-        const recoveryPrompt = document.getElementById("recovery-prompt");
-
-        // 1. Check if we're already logged in (using the lightweight session endpoint)
-        async function verifySession() {
-            try {
-                const res = await fetch("/api/ddm/auth/session", { credentials: "include" });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.authenticated && data.role === "admin") {
-                        window.location.href = "/pages/ddm/admin-panel.html";
-                    }
-                }
-                // If 401 or any other error, stay on the login page (do nothing)
-            } catch (e) {
-                // Backend unreachable – stay on login page
-            }
-        }
-
-        function showError(msg) {
-            errorMsg.textContent = msg;
-            errorMsg.classList.remove("hidden");
-        }
-
-        // 2. Handle login form submission
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            errorMsg.classList.add("hidden");
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-
-            try {
-                const res = await fetch("/api/auth/admin/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ username, password })
-                });
-
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({ detail: "Login failed" }));
-                    showError(err.detail || "Login failed");
-                    return;
-                }
-
-                // Login succeeded – now check if 2FA is required
-                const data = await res.json();
-                if (data.require_totp) {
-                    form.classList.add("hidden");
-                    totpPrompt.classList.remove("hidden");
-                } else {
-                    // No 2FA needed (unlikely per spec, but handle gracefully)
-                    window.location.href = "/pages/ddm/admin-panel.html";
-                }
-            } catch (err) {
-                showError("Network error. Please try again.");
-            }
-        });
-
-        // 3. Handle TOTP submission
-        document.getElementById("totp-submit").addEventListener("click", async () => {
-            const code = document.getElementById("totp-code").value;
-            try {
-                const res = await fetch("/api/auth/admin/2fa", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ totp_code: code })
-                });
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({ detail: "Invalid code" }));
-                    showError(err.detail || "Invalid code");
-                    return;
-                }
-                window.location.href = "/pages/ddm/admin-panel.html";
-            } catch (err) {
-                showError("Network error.");
-            }
-        });
-
-        // 4. Handle recovery code submission (same endpoint, just different payload)
-        document.getElementById("recovery-submit").addEventListener("click", async () => {
-            const code = document.getElementById("recovery-code").value;
-            try {
-                const res = await fetch("/api/auth/admin/2fa", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ recovery_code: code })
-                });
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({ detail: "Invalid recovery code" }));
-                    showError(err.detail || "Invalid code");
-                    return;
-                }
-                window.location.href = "/pages/ddm/admin-panel.html";
-            } catch (err) {
-                showError("Network error.");
-            }
-        });
-
-        // 5. Optionally show recovery prompt link
-        //    (add a "Use recovery code" link on the TOTP prompt to switch)
-
-        // Run session check on page load
-        verifySession();
-    </script>
+    <script type="module" src="/js/ddm-admin-login.js"></script>
 </body>
 </html>
 <!-- end of RCA/frontend/src/pages/ddm/admin-login.html -->
