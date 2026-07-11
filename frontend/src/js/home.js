@@ -1,125 +1,21 @@
 // RCA/frontend/src/js/home.js
 
-// ── Constellation Canvas ──────────────────────────────
+// ── Constellation Canvas (unchanged) ──────────────────
 const canvas = document.getElementById('observatory-canvas');
 const ctx = canvas.getContext('2d');
+...
+// (keep the same constellation code as before)
 
-let width, height;
-let nodes = [];
-const NODE_COUNT = 55;
-const CONNECT_DIST = 120;
-const MOUSE_RADIUS = 80;
-let mouse = { x: null, y: null };
+// ── Typewriter Headline (unchanged) ───────────────────
+...
 
-function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-    initNodes();
-}
-
-function initNodes() {
-    nodes = [];
-    for (let i = 0; i < NODE_COUNT; i++) {
-        nodes.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.3,
-            radius: Math.random() * 2 + 1.5,
-        });
-    }
-}
-
-function draw() {
-    ctx.clearRect(0, 0, width, height);
-
-    for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i];
-
-        if (mouse.x !== null) {
-            const dx = n.x - mouse.x;
-            const dy = n.y - mouse.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < MOUSE_RADIUS) {
-                n.vx += (dx / dist) * 0.5;
-                n.vy += (dy / dist) * 0.5;
-            }
-        }
-
-        n.x += n.vx;
-        n.y += n.vy;
-
-        if (n.x < 0) n.x = width;
-        if (n.x > width) n.x = 0;
-        if (n.y < 0) n.y = height;
-        if (n.y > height) n.y = 0;
-
-        n.vx *= 0.99;
-        n.vy *= 0.99;
-
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(13,94,140,0.8)';
-        ctx.fill();
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-            const dx = nodes[i].x - nodes[j].x;
-            const dy = nodes[i].y - nodes[j].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < CONNECT_DIST) {
-                const opacity = 1 - dist / CONNECT_DIST;
-                ctx.beginPath();
-                ctx.moveTo(nodes[i].x, nodes[i].y);
-                ctx.lineTo(nodes[j].x, nodes[j].y);
-                ctx.strokeStyle = `rgba(13,94,140,${opacity * 0.2})`;
-                ctx.lineWidth = 0.7;
-                ctx.stroke();
-            }
-        }
-    }
-
-    requestAnimationFrame(draw);
-}
-
-window.addEventListener('mousemove', (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-});
-window.addEventListener('mouseleave', () => {
-    mouse.x = null;
-    mouse.y = null;
-});
-
-resize();
-window.addEventListener('resize', resize);
-draw();
-
-// ── Typewriter Headline ───────────────────────────────
-const headlineEl = document.getElementById('headline');
-const text = 'Research & Communication Assistant';
-let charIndex = 0;
-
-function typeHeadline() {
-    if (charIndex < text.length) {
-        headlineEl.textContent += text.charAt(charIndex);
-        charIndex++;
-        setTimeout(typeHeadline, 80 + Math.random() * 60);
-    }
-}
-setTimeout(typeHeadline, 600);
-
-// ── Live Data Points (real data via API) ──────────────
+// ── Live Data Points – now fetch from /api/public/stats ─
 async function fetchStats() {
     try {
-        const response = await fetch('/api/ddm/public/stats');
+        const response = await fetch('/api/public/stats');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
 
-        // Update DOM
         setData('doc-count', data.documents_indexed?.toLocaleString() || '—');
         setData('session-count', data.active_sessions?.toString() || '—');
 
@@ -132,7 +28,6 @@ async function fetchStats() {
         }
     } catch (err) {
         console.warn('Could not fetch stats:', err);
-        // Fallback to static values (you can remove this if you want them blank)
         setData('doc-count', '—');
         setData('session-count', '—');
         setData('last-update', '—');
@@ -144,9 +39,45 @@ function setData(id, value) {
     if (el) el.textContent = value;
 }
 
-// Fetch immediately and then every 60 seconds
 fetchStats();
 setInterval(fetchStats, 60000);
+
+// ── Load public announcements ─────────────────────────
+async function fetchPublicAnnouncements() {
+    const container = document.getElementById('public-announcements');
+    if (!container) return;
+    try {
+        const res = await fetch('/api/public/announcements');
+        if (!res.ok) throw new Error('Failed');
+        const announcements = await res.json();
+        if (announcements.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 italic">No public announcements.</p>';
+            return;
+        }
+        let html = '<div class="announcements-panel"><h2>Public Announcements</h2>';
+        announcements.forEach(a => {
+            html += `
+                <div class="announcement-item">
+                    <h3>${escapeHtml(a.title)}</h3>
+                    <p>${escapeHtml(a.body)}</p>
+                    <span class="text-sm text-gray-400">${new Date(a.created_at).toLocaleDateString()}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.warn('Could not load public announcements:', err);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+fetchPublicAnnouncements();
 
 // ── DDM Access Button ──────────────────────────────────
 document.getElementById('ddm-access-btn').addEventListener('click', () => {

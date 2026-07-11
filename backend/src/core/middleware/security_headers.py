@@ -8,13 +8,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Content-Security-Policy – restricts to own origin and trusted CDNs (Tailwind)
+        # Content-Security-Policy – allows own origin, Google Fonts, and Tailwind CDN
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "script-src 'self' https://cdn.jsdelivr.net; "
             "img-src 'self' data:; "
-            "font-src 'self' https://cdn.jsdelivr.net; "
+            "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "connect-src 'self'"
         )
         # HSTS – max 1 year, include subdomains (enforced by Nginx in production, but set here for dev)

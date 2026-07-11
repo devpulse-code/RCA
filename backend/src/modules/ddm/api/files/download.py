@@ -9,10 +9,39 @@ from backend.src.modules.ddm.api.deps import get_current_user
 from backend.src.modules.ddm.models.file import File
 from backend.src.modules.ddm.services.file_service import stream_local_file, proxy_terabox
 from backend.src.modules.ddm.services.audit_service import log_audit
+import os
+import mimetypes
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+def get_filename_with_extension(file_record: File) -> str:
+    """
+    Return a safe filename that always includes an extension.
+    For local files, uses the extension from the stored local_path.
+    For terabox files, guesses an extension from the MIME type if name has none.
+    """
+    name = file_record.name
+    # If name already has an extension, keep it as is
+    if '.' in os.path.basename(name):
+        return name
+
+    # For local files, use the extension from local_path
+    if file_record.storage_type.value == "local" and file_record.local_path:
+        ext = os.path.splitext(file_record.local_path)[1]
+        if ext:
+            return f"{name}{ext}"
+
+    # Otherwise, guess extension from MIME type
+    mime = file_record.mime_type
+    if mime:
+        guessed_ext = mimetypes.guess_extension(mime)
+        if guessed_ext:
+            return f"{name}{guessed_ext}"
+
+    # Fallback: append .bin if nothing else works
+    return f"{name}.bin"
 
 
 @router.get("/files/{file_id}/download")
@@ -46,17 +75,19 @@ async def download_file(
         ip_address=request.client.host,
     )
 
+    filename = get_filename_with_extension(file_record)
+
     if file_record.storage_type.value == "local":
-        path, mime_type, file_name = await stream_local_file(file_record)
+        path, mime_type, _ = await stream_local_file(file_record)
         def iterfile():
             with open(path, "rb") as f:
                 while chunk := f.read(64 * 1024):
                     yield chunk
-        headers = {"Content-Disposition": f'attachment; filename="{file_name}"'}
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         return StreamingResponse(iterfile(), media_type=mime_type, headers=headers)
     elif file_record.storage_type.value == "terabox":
         content, mime_type = await proxy_terabox(file_record)
-        headers = {"Content-Disposition": f'attachment; filename="{file_record.name}"'}
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         return StreamingResponse(iter([content]), media_type=mime_type, headers=headers)
     else:
         raise HTTPException(status_code=400, detail="Unknown storage type")

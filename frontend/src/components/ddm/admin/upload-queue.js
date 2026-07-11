@@ -23,12 +23,12 @@ export class UploadQueue {
   render() {
     if (!this.container) return;
     if (this.requests.length === 0) {
-      this.container.innerHTML = "<p>No pending upload requests.</p>";
+      this.container.innerHTML = "<p class=\"text-gray-400\">No pending upload requests.</p>";
       return;
     }
     let html = `
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">Upload Requests</h2>
+        <h2 class="text-xl font-semibold text-gray-100">Upload Requests</h2>
         <div>
           <button id="btn-approve-selected" class="bg-green-500 text-white px-3 py-1 rounded mr-2" disabled>Approve Selected</button>
           <button id="btn-reject-selected" class="bg-red-500 text-white px-3 py-1 rounded" disabled>Reject Selected</button>
@@ -36,13 +36,13 @@ export class UploadQueue {
       </div>
       <div class="space-y-4">
         ${this.requests.map(r => `
-          <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+          <div class="bg-gray-900 p-4 rounded shadow flex justify-between items-center">
             <div class="flex items-center space-x-3">
               <input type="checkbox" class="request-checkbox" value="${r.id}">
               <div>
-                <h3 class="font-semibold">${r.name}</h3>
-                <p class="text-sm text-gray-600">${r.description || ''}</p>
-                <span class="text-xs">${r.size ? (r.size/1024).toFixed(1)+' KB' : ''}</span>
+                <h3 class="font-semibold text-gray-200">${r.name}</h3>
+                <p class="text-sm text-gray-400">${r.description || ''}</p>
+                <span class="text-xs text-gray-400">${r.size ? (r.size/1024).toFixed(1)+' KB' : ''}</span>
               </div>
             </div>
             <div class="space-x-2">

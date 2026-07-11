@@ -1,10 +1,8 @@
 # RCA/backend/src/modules/ddm/api/router.py
-
 from fastapi import APIRouter, Request, Depends
 from backend.src.core.db.database import get_db
 from backend.src.core.db.redis import get_redis
 
-# NOTE: prefix is "/ddm" because the parent router already includes "/api"
 router = APIRouter(prefix="/ddm")
 
 # Admin sub-routers
@@ -26,14 +24,14 @@ router.include_router(admin_announcements_router, prefix="/admin")
 router.include_router(admin_settings_router, prefix="/admin")
 router.include_router(admin_audit_log_router, prefix="/admin")
 
-# Auth routes – both user and admin login
+# Auth routes
 from backend.src.modules.ddm.api.auth.passcode_login import router as passcode_router
 from backend.src.modules.ddm.api.auth.admin_login import router as admin_login_router
 from backend.src.modules.ddm.api.auth.session import router as session_router
 
-router.include_router(passcode_router)                # /api/ddm/auth/passcode
-router.include_router(admin_login_router, prefix="/auth")  # /api/ddm/auth/admin/login
-router.include_router(session_router, prefix="/auth")      # /api/ddm/auth/session
+router.include_router(passcode_router)
+router.include_router(admin_login_router, prefix="/auth")
+router.include_router(session_router, prefix="/auth")
 
 # File routes
 from backend.src.modules.ddm.api.files.download import router as download_router
@@ -47,7 +45,7 @@ router.include_router(list_router)
 from backend.src.modules.ddm.api.search.search import router as search_router
 router.include_router(search_router)
 
-# Announcements (user side)
+# Announcements (user side, requires login)
 from backend.src.modules.ddm.api.announcements.announcements import router as user_announcements_router
 router.include_router(user_announcements_router)
 
@@ -55,8 +53,7 @@ router.include_router(user_announcements_router)
 from backend.src.modules.ddm.api.ai.chat import router as ai_router
 router.include_router(ai_router, prefix="/ai")
 
-# Public stats endpoint
-from .public import router as public_router
-router.include_router(public_router)
+# NOTE: public endpoints are now mounted in the top-level API router,
+# so they are accessible at /api/public/stats and /api/public/announcements.
 
 # end of RCA/backend/src/modules/ddm/api/router.py

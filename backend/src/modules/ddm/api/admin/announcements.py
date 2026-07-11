@@ -29,6 +29,7 @@ async def list_announcements(
             body=a.body,
             expiry=a.expiry,
             groups=[g.name for g in a.groups],
+            is_public=a.is_public,
             created_at=a.created_at,
             updated_at=a.updated_at,
         ))
@@ -45,6 +46,7 @@ async def create_announcement(
         title=payload.title,
         body=payload.body,
         expiry=payload.expiry,
+        is_public=payload.is_public,
     )
     # Resolve groups
     if payload.group_ids:
@@ -58,7 +60,7 @@ async def create_announcement(
     await db.commit()
     # Refetch with eager loading to return groups
     await db.refresh(announcement, attribute_names=["groups"])
-    # Since we need group names, just re-query with selectinload
+    # Re-query with selectinload to get groups names
     result = await db.execute(
         select(Announcement).where(Announcement.id == announcement.id).options(selectinload(Announcement.groups))
     )
@@ -80,6 +82,7 @@ async def create_announcement(
         body=announcement.body,
         expiry=announcement.expiry,
         groups=[g.name for g in announcement.groups],
+        is_public=announcement.is_public,
         created_at=announcement.created_at,
         updated_at=announcement.updated_at,
     )
@@ -105,6 +108,8 @@ async def update_announcement(
         announcement.body = payload.body
     if payload.expiry is not None:
         announcement.expiry = payload.expiry
+    if payload.is_public is not None:
+        announcement.is_public = payload.is_public
     if payload.group_ids is not None:
         groups = []
         if payload.group_ids:
@@ -137,6 +142,7 @@ async def update_announcement(
         body=announcement.body,
         expiry=announcement.expiry,
         groups=[g.name for g in announcement.groups],
+        is_public=announcement.is_public,
         created_at=announcement.created_at,
         updated_at=announcement.updated_at,
     )

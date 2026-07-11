@@ -5,7 +5,7 @@ import { showToast } from "../../ui/toast.js";
 export class SettingsPanel {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
-    this.settings = null;   // null = not loaded yet
+    this.settings = null;
     this.load();
   }
 
@@ -23,47 +23,46 @@ export class SettingsPanel {
   render() {
     if (!this.container) return;
 
-    // If settings haven't loaded yet, show a loading indicator
     if (!this.settings) {
-      this.container.innerHTML = '<p class="text-gray-500">Loading settings...</p>';
+      this.container.innerHTML = '<p class="text-gray-400">Loading settings...</p>';
       return;
     }
 
     const s = this.settings;
     this.container.innerHTML = `
-      <h2 class="text-xl font-semibold mb-4">System Settings</h2>
-      <form id="settings-form" class="space-y-4 bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-semibold text-gray-100 mb-4">System Settings</h2>
+      <form id="settings-form" class="space-y-4 bg-gray-900 p-6 rounded shadow">
         <div>
-          <label class="block text-sm font-medium">Session Duration (hours)</label>
-          <input type="number" name="session_duration_hours" value="${s.session_duration_hours || 8}" class="w-full border p-2">
+          <label class="block text-sm font-medium text-gray-200">Session Duration (hours)</label>
+          <input type="number" name="session_duration_hours" value="${s.session_duration_hours || 8}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         </div>
         <div>
-          <label class="block text-sm font-medium">Inactivity Timeout (minutes)</label>
-          <input type="number" name="session_inactivity_minutes" value="${s.session_inactivity_minutes || 30}" class="w-full border p-2">
+          <label class="block text-sm font-medium text-gray-200">Inactivity Timeout (minutes)</label>
+          <input type="number" name="session_inactivity_minutes" value="${s.session_inactivity_minutes || 30}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         </div>
         <div>
-          <label class="flex items-center space-x-2">
+          <label class="flex items-center space-x-2 text-gray-200">
             <input type="checkbox" name="single_session_mode" ${s.single_session_mode === 'true' ? 'checked' : ''}>
             <span>Single Session Mode</span>
           </label>
         </div>
         <div>
-          <label class="flex items-center space-x-2">
+          <label class="flex items-center space-x-2 text-gray-200">
             <input type="checkbox" name="ddm_ai_enabled" ${s.ddm_ai_enabled === 'true' ? 'checked' : ''}>
             <span>Enable AI Assistant</span>
           </label>
         </div>
         <div>
-          <label class="block text-sm font-medium">Admin Upload Limit (MB)</label>
-          <input type="number" name="ddm_admin_upload_limit_mb" value="${s.ddm_admin_upload_limit_mb || 500}" class="w-full border p-2">
+          <label class="block text-sm font-medium text-gray-200">Admin Upload Limit (MB)</label>
+          <input type="number" name="ddm_admin_upload_limit_mb" value="${s.ddm_admin_upload_limit_mb || 500}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         </div>
         <div>
-          <label class="block text-sm font-medium">User Upload Limit (MB)</label>
-          <input type="number" name="ddm_user_upload_limit_mb" value="${s.ddm_user_upload_limit_mb || 100}" class="w-full border p-2">
+          <label class="block text-sm font-medium text-gray-200">User Upload Limit (MB)</label>
+          <input type="number" name="ddm_user_upload_limit_mb" value="${s.ddm_user_upload_limit_mb || 100}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         </div>
         <div>
-          <label class="block text-sm font-medium">Audit Log Retention (days, 0 = indefinite)</label>
-          <input type="number" name="audit_log_retention_days" value="${s.audit_log_retention_days || 1095}" class="w-full border p-2">
+          <label class="block text-sm font-medium text-gray-200">Audit Log Retention (days, 0 = indefinite)</label>
+          <input type="number" name="audit_log_retention_days" value="${s.audit_log_retention_days || 1095}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         </div>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save Settings</button>
       </form>

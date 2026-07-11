@@ -81,4 +81,40 @@ form.addEventListener('submit', async (e) => {
         submitBtn.textContent = 'Sign In';
     }
 });
+
+// Load public announcements
+(async function loadPublicAnnouncements() {
+    const container = document.getElementById('public-announcements');
+    if (!container) return;
+    try {
+        const res = await fetch('/api/public/announcements');
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        if (data.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 italic">No public announcements.</p>';
+            return;
+        }
+        let html = '<div class="announcements-panel"><h2>Announcements</h2>';
+        data.forEach(a => {
+            html += `
+                <div class="announcement-item">
+                    <h3>${escapeHtml(a.title)}</h3>
+                    <p>${escapeHtml(a.body)}</p>
+                    <span class="text-sm text-gray-400">${new Date(a.created_at).toLocaleDateString()}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.warn('Could not load public announcements:', err);
+        container.innerHTML = '';
+    }
+})();
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 // end of RCA/frontend/src/js/ddm-login.js

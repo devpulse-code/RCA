@@ -7,26 +7,19 @@
     <title>RCA · The Observatory</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap"
-        rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/css/home.css" />
 </head>
 <body>
-    <!-- Constellation Canvas -->
     <canvas id="observatory-canvas"></canvas>
 
-    <!-- Overlay content -->
     <div class="observatory-main">
-        <!-- Top bar with admin link -->
         <div class="top-bar">
             <a href="/pages/ddm/admin-login.html" class="admin-link">
                 <span class="star-icon" aria-hidden="true">★</span> Admin
             </a>
         </div>
 
-        <!-- Content grid -->
         <div class="content-grid">
             <div class="brand-pillar">
                 <span class="wordmark">RCA</span>
@@ -66,6 +59,9 @@
                 </div>
             </aside>
         </div>
+
+        <!-- Public announcements panel -->
+        <div id="public-announcements" class="public-announcements-container"></div>
     </div>
 
     <script src="/js/home.js"></script>

@@ -15,13 +15,12 @@ export class FileList {
       const raw = await FileService.fetchUserFiles();
       this.files = Array.isArray(raw) ? raw : [];
     } catch (e) {
-      // Show a toast and also display an error in the file list area
       try {
         showToast(e.message || "Failed to load files", "error");
       } catch (_) {
-        // toast container may be missing – ignore
+        // ignore
       }
-      this.files = null;   // signal error state
+      this.files = null;
       console.error("File fetch error:", e);
     }
     this.render();
@@ -30,17 +29,16 @@ export class FileList {
   render() {
     if (!this.container) return;
     if (this.files === null) {
-      // Error state
-      this.container.innerHTML = `<p class="text-red-500">Could not load files. Please refresh or try again later.</p>`;
+      this.container.innerHTML = `<p class="text-red-400">Could not load files. Please refresh or try again later.</p>`;
       return;
     }
     if (!Array.isArray(this.files)) {
-      this.container.innerHTML = `<p class="text-gray-500">Unexpected data received.</p>`;
+      this.container.innerHTML = `<p class="text-gray-400">Unexpected data received.</p>`;
       return;
     }
     this.container.innerHTML = this.files.length
       ? `<div class="space-y-4">${this.files.map(fileCard).join('')}</div>`
-      : `<p class="text-gray-500">No files available.</p>`;
+      : `<p class="text-gray-400">No files available.</p>`;
   }
 }
 // end of RCA/frontend/src/components/ddm/file-list.js

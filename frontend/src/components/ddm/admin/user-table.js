@@ -27,40 +27,42 @@ export class UserTable {
     if (!this.container) return;
     let html = `
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">Users</h2>
+        <h2 class="text-xl font-semibold text-gray-100">Users</h2>
         <button class="bg-blue-600 text-white px-4 py-2 rounded" id="btn-create-user">Create User</button>
       </div>
       <div class="flex gap-2 mb-4">
         <button id="btn-bulk-revoke" class="bg-yellow-500 text-white px-3 py-1 rounded" disabled>Revoke Selected Passcodes</button>
       </div>
-      <table class="w-full bg-white rounded shadow">
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="select-all"></th>
-            <th>Name</th>
-            <th>Contact</th>
-            <th>Groups</th>
-            <th>Passcode Active</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="user-tbody">
-          ${this.users.map(u => `
-            <tr data-id="${u.id}">
-              <td><input type="checkbox" class="user-checkbox" value="${u.id}"></td>
-              <td>${u.name}</td>
-              <td>${u.contact || ''}</td>
-              <td>${(u.groups || []).join(', ')}</td>
-              <td>${u.passcode_active ? 'Active' : 'Revoked'}</td>
-              <td>
-                <button class="edit-btn text-blue-600 hover:underline" data-id="${u.id}">Edit</button>
-                <button class="revoke-btn text-yellow-600 hover:underline ml-2" data-id="${u.id}">Revoke</button>
-                <button class="delete-btn text-red-600 hover:underline ml-2" data-id="${u.id}">Delete</button>
-              </td>
+      <div class="overflow-x-auto">
+        <table class="w-full bg-gray-900 rounded shadow">
+          <thead class="bg-gray-800">
+            <tr>
+              <th class="p-2"><input type="checkbox" id="select-all"></th>
+              <th class="p-2 text-left text-gray-200">Name</th>
+              <th class="p-2 text-left text-gray-200">Contact</th>
+              <th class="p-2 text-left text-gray-200">Groups</th>
+              <th class="p-2 text-left text-gray-200">Passcode Active</th>
+              <th class="p-2 text-left text-gray-200">Actions</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody id="user-tbody">
+            ${this.users.map(u => `
+              <tr data-id="${u.id}" class="border-b border-gray-700">
+                <td class="p-2"><input type="checkbox" class="user-checkbox" value="${u.id}"></td>
+                <td class="p-2 text-gray-200">${u.name}</td>
+                <td class="p-2 text-gray-200">${u.contact || ''}</td>
+                <td class="p-2 text-gray-200">${(u.groups || []).join(', ')}</td>
+                <td class="p-2 text-gray-200">${u.passcode_active ? 'Active' : 'Revoked'}</td>
+                <td class="p-2">
+                  <button class="edit-btn text-blue-400 hover:underline" data-id="${u.id}">Edit</button>
+                  <button class="revoke-btn text-yellow-400 hover:underline ml-2" data-id="${u.id}">Revoke</button>
+                  <button class="delete-btn text-red-400 hover:underline ml-2" data-id="${u.id}">Delete</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
     this.container.innerHTML = html;
     this.attachEvents();
@@ -132,12 +134,11 @@ export class UserTable {
     if (!confirm(`Revoke passcodes for ${ids.length} users?`)) return;
     try {
       const results = await AdminService.bulkRevokePasscodes(ids);
-      // Build a modal content with copy buttons for each passcode
       const rows = results.map(r => `
         <tr>
           <td class="px-2 py-1">${r.user_id}</td>
-          <td class="px-2 py-1"><code class="bg-gray-100 px-1 rounded">${r.passcode}</code></td>
-          <td class="px-2 py-1"><button class="copy-single-btn text-blue-600 hover:underline text-sm" data-passcode="${r.passcode}">Copy</button></td>
+          <td class="px-2 py-1"><code class="bg-gray-700 px-1 rounded text-gray-200">${r.passcode}</code></td>
+          <td class="px-2 py-1"><button class="copy-single-btn text-blue-400 hover:underline text-sm" data-passcode="${r.passcode}">Copy</button></td>
         </tr>
       `).join("");
       const content = `
@@ -149,12 +150,11 @@ export class UserTable {
           </table>
           <div class="flex gap-2">
             <button id="bulk-copy-all" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Copy All</button>
-            <button id="bulk-download-csv" class="bg-gray-500 text-white px-3 py-1 rounded text-sm">Download CSV</button>
+            <button id="bulk-download-csv" class="bg-gray-600 text-white px-3 py-1 rounded text-sm">Download CSV</button>
           </div>
         </div>
       `;
       openModal(content, (modal) => {
-        // Attach copy buttons inside modal
         modal.querySelectorAll(".copy-single-btn").forEach(btn => {
           btn.addEventListener("click", () => {
             const passcode = btn.dataset.passcode;
@@ -192,10 +192,10 @@ export class UserTable {
     const groupOptions = this.groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
     const content = `
       <form id="create-user-form" class="space-y-4">
-        <input type="text" name="name" placeholder="Name" required class="w-full border p-2">
-        <input type="text" name="contact" placeholder="Contact (optional)" class="w-full border p-2">
-        <label>Groups</label>
-        <select name="groups" multiple class="w-full border p-2">${groupOptions}</select>
+        <input type="text" name="name" placeholder="Name" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+        <input type="text" name="contact" placeholder="Contact (optional)" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+        <label class="text-gray-200">Groups</label>
+        <select name="groups" multiple class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">${groupOptions}</select>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Create</button>
       </form>
     `;
@@ -225,10 +225,10 @@ export class UserTable {
     const groupOptions = this.groups.map(g => `<option value="${g.name}" ${user.groups.includes(g.name)?'selected':''}>${g.name}</option>`).join('');
     const content = `
       <form id="edit-user-form" class="space-y-4">
-        <input type="text" name="name" value="${user.name}" required class="w-full border p-2">
-        <input type="text" name="contact" value="${user.contact || ''}" class="w-full border p-2">
-        <label>Groups</label>
-        <select name="groups" multiple class="w-full border p-2">${groupOptions}</select>
+        <input type="text" name="name" value="${user.name}" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+        <input type="text" name="contact" value="${user.contact || ''}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+        <label class="text-gray-200">Groups</label>
+        <select name="groups" multiple class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">${groupOptions}</select>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
       </form>
     `;

@@ -8,6 +8,7 @@ class AnnouncementBase(BaseModel):
     body: str
     expiry: Optional[datetime] = None
     group_ids: List[int] = []
+    is_public: bool = False
 
 class AnnouncementCreate(AnnouncementBase):
     pass
@@ -17,6 +18,7 @@ class AnnouncementUpdate(BaseModel):
     body: Optional[str] = None
     expiry: Optional[datetime] = None
     group_ids: Optional[List[int]] = None
+    is_public: Optional[bool] = None
 
 class AnnouncementOut(BaseModel):
     id: int
@@ -24,6 +26,7 @@ class AnnouncementOut(BaseModel):
     body: str
     expiry: Optional[datetime] = None
     groups: List[str]  # group names
+    is_public: bool
     created_at: datetime
     updated_at: datetime
 
