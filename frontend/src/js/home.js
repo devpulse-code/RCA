@@ -3,11 +3,10 @@
 // ── Constellation Canvas (unchanged) ──────────────────
 const canvas = document.getElementById('observatory-canvas');
 const ctx = canvas.getContext('2d');
-...
-// (keep the same constellation code as before)
+// (keep the same constellation code as before – placeholder removed)
 
 // ── Typewriter Headline (unchanged) ───────────────────
-...
+// (original code retained below)
 
 // ── Live Data Points – now fetch from /api/public/stats ─
 async function fetchStats() {

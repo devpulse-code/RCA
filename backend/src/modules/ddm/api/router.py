@@ -45,9 +45,9 @@ router.include_router(list_router)
 from backend.src.modules.ddm.api.search.search import router as search_router
 router.include_router(search_router)
 
-# Announcements (user side, requires login)
+# Announcements (user side, requires login) – NOW MOUNTED AT /ddm/announcements/
 from backend.src.modules.ddm.api.announcements.announcements import router as user_announcements_router
-router.include_router(user_announcements_router)
+router.include_router(user_announcements_router, prefix="/announcements")
 
 # AI
 from backend.src.modules.ddm.api.ai.chat import router as ai_router

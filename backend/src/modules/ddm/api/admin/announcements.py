@@ -35,6 +35,29 @@ async def list_announcements(
         ))
     return out
 
+@router.get("/{announcement_id}", response_model=AnnouncementOut)
+async def get_announcement(
+    announcement_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
+    result = await db.execute(
+        select(Announcement).where(Announcement.id == announcement_id).options(selectinload(Announcement.groups))
+    )
+    announcement = result.scalar_one_or_none()
+    if not announcement:
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    return AnnouncementOut(
+        id=announcement.id,
+        title=announcement.title,
+        body=announcement.body,
+        expiry=announcement.expiry,
+        groups=[g.name for g in announcement.groups],
+        is_public=announcement.is_public,
+        created_at=announcement.created_at,
+        updated_at=announcement.updated_at,
+    )
+
 @router.post("/", response_model=AnnouncementOut, status_code=201)
 async def create_announcement(
     payload: AnnouncementCreate,
@@ -42,13 +65,13 @@ async def create_announcement(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
+    # We no longer automatically set is_public – frontend sends it explicitly.
     announcement = Announcement(
         title=payload.title,
         body=payload.body,
         expiry=payload.expiry,
         is_public=payload.is_public,
     )
-    # Resolve groups
     if payload.group_ids:
         result = await db.execute(select(Group).where(Group.id.in_(payload.group_ids)))
         groups = result.scalars().all()
@@ -58,9 +81,7 @@ async def create_announcement(
 
     db.add(announcement)
     await db.commit()
-    # Refetch with eager loading to return groups
     await db.refresh(announcement, attribute_names=["groups"])
-    # Re-query with selectinload to get groups names
     result = await db.execute(
         select(Announcement).where(Announcement.id == announcement.id).options(selectinload(Announcement.groups))
     )
@@ -120,7 +141,6 @@ async def update_announcement(
         announcement.groups = groups
 
     await db.commit()
-    # Refetch with eager loading
     result = await db.execute(
         select(Announcement).where(Announcement.id == announcement_id).options(selectinload(Announcement.groups))
     )
@@ -159,7 +179,6 @@ async def delete_announcement(
         raise HTTPException(status_code=404, detail="Announcement not found")
     await db.delete(announcement)
     await db.commit()
-
     await log_audit(
         db,
         action="announcement_deleted",
@@ -169,7 +188,6 @@ async def delete_announcement(
         details={"title": announcement.title},
         ip_address=request.client.host,
     )
-    return
 
 @router.delete("/bulk", status_code=204)
 async def bulk_delete_announcements(
@@ -193,5 +211,4 @@ async def bulk_delete_announcements(
             ip_address=request.client.host,
         )
     await db.commit()
-    return
 # end of RCA/backend/src/modules/ddm/api/admin/announcements.py

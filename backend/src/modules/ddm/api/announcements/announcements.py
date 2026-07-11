@@ -32,15 +32,11 @@ async def list_user_announcements(
     )
     announcements = result.scalars().all()
 
-    # Filter: either public, or targeted to at least one of the user's groups
     visible = []
     for a in announcements:
-        if a.is_public:
+        # Show if public, or if announcement has no groups (intended for all), or if user belongs to at least one targeted group
+        if a.is_public or len(a.groups) == 0 or any(g.id in user_group_ids for g in a.groups):
             visible.append(a)
-        else:
-            # Check group intersection
-            if any(g.id in user_group_ids for g in a.groups):
-                visible.append(a)
 
     out = []
     for a in visible:

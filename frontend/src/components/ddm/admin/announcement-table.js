@@ -37,6 +37,7 @@ export class AnnouncementTable {
               <th class="p-2"><input type="checkbox" id="select-all-announcements"></th>
               <th class="p-2 text-left text-gray-200">Title</th>
               <th class="p-2 text-left text-gray-200">Expiry</th>
+              <th class="p-2 text-left text-gray-200">Public</th>
               <th class="p-2 text-left text-gray-200">Groups</th>
               <th class="p-2 text-left text-gray-200">Actions</th>
             </tr>
@@ -47,7 +48,8 @@ export class AnnouncementTable {
                 <td class="p-2"><input type="checkbox" class="announcement-checkbox" value="${a.id}"></td>
                 <td class="p-2 text-gray-200">${a.title}</td>
                 <td class="p-2 text-gray-200">${a.expiry ? new Date(a.expiry).toLocaleDateString() : 'Never'}</td>
-                <td class="p-2 text-gray-200">${a.groups.join(', ') || 'All'}</td>
+                <td class="p-2 text-gray-200">${a.is_public ? 'Yes' : 'No'}</td>
+                <td class="p-2 text-gray-200">${a.groups.join(', ') || '—'}</td>
                 <td class="p-2">
                   <button class="edit-announcement-btn text-blue-400 hover:underline" data-id="${a.id}">Edit</button>
                   <button class="delete-announcement-btn text-red-400 hover:underline ml-2" data-id="${a.id}">Delete</button>
@@ -117,20 +119,24 @@ export class AnnouncementTable {
         <input type="text" name="title" placeholder="Title" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         <textarea name="body" placeholder="Body" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded"></textarea>
         <input type="datetime-local" name="expiry" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-        <label class="text-gray-200">Target Groups (leave empty for all)</label>
+        <label class="flex items-center space-x-2 text-gray-200">
+          <input type="checkbox" name="is_public" class="bg-gray-700 border-gray-600">
+          <span>Public (visible to everyone)</span>
+        </label>
+        <label class="text-gray-200">Target Groups (if any)</label>
         <select name="groups" multiple class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-          <!-- groups will be populated later -->
         </select>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Create</button>
       </form>
     `;
     openModal(content, async (modal) => {
+      let groups = [];
       try {
-        const groups = await AdminService.fetchGroups();
+        groups = await AdminService.fetchGroups();
         const select = modal.querySelector("select[name='groups']");
         groups.forEach(g => {
           const opt = document.createElement("option");
-          opt.value = g.name;
+          opt.value = g.name;       // we'll map name->id later
           opt.textContent = g.name;
           select.appendChild(opt);
         });
@@ -139,12 +145,14 @@ export class AnnouncementTable {
       modal.querySelector("#create-announcement-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.target;
-        const groupNames = Array.from(form.groups.selectedOptions).map(o => o.value);
+        const selectedGroupNames = Array.from(form.groups.selectedOptions).map(o => o.value);
+        const groupIds = groups.filter(g => selectedGroupNames.includes(g.name)).map(g => g.id);
         const data = {
           title: form.title.value,
           body: form.body.value,
           expiry: form.expiry.value ? new Date(form.expiry.value).toISOString() : null,
-          group_ids: [],
+          is_public: form.is_public.checked,
+          group_ids: groupIds,
         };
         try {
           await AdminService.createAnnouncement(data);
@@ -164,17 +172,21 @@ export class AnnouncementTable {
         <input type="text" name="title" value="${announcement.title}" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
         <textarea name="body" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">${announcement.body}</textarea>
         <input type="datetime-local" name="expiry" value="${announcement.expiry ? new Date(announcement.expiry).toISOString().slice(0,16) : ''}" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+        <label class="flex items-center space-x-2 text-gray-200">
+          <input type="checkbox" name="is_public" ${announcement.is_public ? 'checked' : ''} class="bg-gray-700 border-gray-600">
+          <span>Public (visible to everyone)</span>
+        </label>
         <label class="text-gray-200">Target Groups</label>
         <select name="groups" multiple class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-          <!-- populated dynamically -->
         </select>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
       </form>
     `;
     openModal(content, async (modal) => {
       const select = modal.querySelector("select[name='groups']");
+      let groups = [];
       try {
-        const groups = await AdminService.fetchGroups();
+        groups = await AdminService.fetchGroups();
         groups.forEach(g => {
           const opt = document.createElement("option");
           opt.value = g.name;
@@ -187,12 +199,14 @@ export class AnnouncementTable {
       modal.querySelector("#edit-announcement-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.target;
-        const groupNames = Array.from(form.groups.selectedOptions).map(o => o.value);
+        const selectedGroupNames = Array.from(form.groups.selectedOptions).map(o => o.value);
+        const groupIds = groups.filter(g => selectedGroupNames.includes(g.name)).map(g => g.id);
         const data = {
           title: form.title.value,
           body: form.body.value,
           expiry: form.expiry.value ? new Date(form.expiry.value).toISOString() : null,
-          group_ids: [],
+          is_public: form.is_public.checked,
+          group_ids: groupIds,
         };
         try {
           await AdminService.updateAnnouncement(announcement.id, data);
