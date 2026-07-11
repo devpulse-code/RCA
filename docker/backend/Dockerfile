@@ -6,7 +6,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 WORKDIR /app/backend
-
+# NEW: point Alembic to the config file no matter where we run from
+ENV ALEMBIC_CONFIG=/app/backend/alembic.ini
 # Install curl (healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
