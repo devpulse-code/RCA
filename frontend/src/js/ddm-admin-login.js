@@ -19,7 +19,9 @@ async function verifySession() {
                 window.location.href = "/pages/ddm/admin-panel.html";
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        // Session check failed silently
+    }
 }
 
 form.addEventListener("submit", async (e) => {
@@ -29,7 +31,8 @@ form.addEventListener("submit", async (e) => {
     const password = document.getElementById("password").value;
 
     try {
-        const res = await fetch("/api/auth/admin/login", {
+        // Corrected URL: /api/ddm/auth/admin/login
+        const res = await fetch("/api/ddm/auth/admin/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -57,7 +60,9 @@ form.addEventListener("submit", async (e) => {
 document.getElementById("totp-submit").addEventListener("click", async () => {
     const code = document.getElementById("totp-code").value;
     try {
-        const res = await fetch("/api/auth/admin/2fa", {
+        // Note: you may later need to change this URL once the 2FA endpoint is implemented.
+        // For now it points to the same login route; adjust after you add the real 2FA endpoint.
+        const res = await fetch("/api/ddm/auth/admin/2fa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -77,7 +82,7 @@ document.getElementById("totp-submit").addEventListener("click", async () => {
 document.getElementById("recovery-submit").addEventListener("click", async () => {
     const code = document.getElementById("recovery-code").value;
     try {
-        const res = await fetch("/api/auth/admin/2fa", {
+        const res = await fetch("/api/ddm/auth/admin/2fa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

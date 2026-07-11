@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 
 # Prefixes that do NOT require authentication
 PUBLIC_PATH_PREFIXES = (
-    "/api/auth/admin/login",       # ← actual admin login endpoint
-    "/api/auth/admin/2fa",         # ← actual admin 2FA endpoint
-    "/api/ddm/auth/passcode",      # ← user passcode login
-    "/api/ddm/auth/session",       # ← session verification (lightweight)
+    "/api/ddm/auth/admin/login",
+    "/api/ddm/auth/admin/2fa",
+    "/api/ddm/auth/passcode",
+    "/api/ddm/auth/session",
+    "/api/ddm/public",
     "/api/health",
     "/docs",
     "/openapi.json",

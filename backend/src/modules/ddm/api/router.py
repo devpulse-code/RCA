@@ -4,7 +4,8 @@ from fastapi import APIRouter, Request, Depends
 from backend.src.core.db.database import get_db
 from backend.src.core.db.redis import get_redis
 
-router = APIRouter(prefix="/api/ddm")
+# NOTE: prefix is "/ddm" because the parent router already includes "/api"
+router = APIRouter(prefix="/ddm")
 
 # Admin sub-routers
 from backend.src.modules.ddm.api.admin.users import router as admin_users_router
@@ -25,11 +26,14 @@ router.include_router(admin_announcements_router, prefix="/admin")
 router.include_router(admin_settings_router, prefix="/admin")
 router.include_router(admin_audit_log_router, prefix="/admin")
 
-# Auth routes
+# Auth routes – both user and admin login
 from backend.src.modules.ddm.api.auth.passcode_login import router as passcode_router
+from backend.src.modules.ddm.api.auth.admin_login import router as admin_login_router
 from backend.src.modules.ddm.api.auth.session import router as session_router
-router.include_router(passcode_router)
-router.include_router(session_router, prefix="/auth")
+
+router.include_router(passcode_router)                # /api/ddm/auth/passcode
+router.include_router(admin_login_router, prefix="/auth")  # /api/ddm/auth/admin/login
+router.include_router(session_router, prefix="/auth")      # /api/ddm/auth/session
 
 # File routes
 from backend.src.modules.ddm.api.files.download import router as download_router
