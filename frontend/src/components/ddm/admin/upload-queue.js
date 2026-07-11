@@ -30,13 +30,13 @@ export class UploadQueue {
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-100">Upload Requests</h2>
         <div>
-          <button id="btn-approve-selected" class="bg-green-500 text-white px-3 py-1 rounded mr-2" disabled>Approve Selected</button>
-          <button id="btn-reject-selected" class="bg-red-500 text-white px-3 py-1 rounded" disabled>Reject Selected</button>
+          <button id="btn-approve-selected" class="btn btn-success btn-sm mr-2" disabled>Approve Selected</button>
+          <button id="btn-reject-selected" class="btn btn-danger btn-sm" disabled>Reject Selected</button>
         </div>
       </div>
       <div class="space-y-4">
         ${this.requests.map(r => `
-          <div class="bg-gray-900 p-4 rounded shadow flex justify-between items-center">
+          <div class="card">
             <div class="flex items-center space-x-3">
               <input type="checkbox" class="request-checkbox" value="${r.id}">
               <div>
@@ -46,8 +46,8 @@ export class UploadQueue {
               </div>
             </div>
             <div class="space-x-2">
-              <button class="approve-btn bg-green-500 text-white px-3 py-1 rounded" data-id="${r.id}">Approve</button>
-              <button class="reject-btn bg-red-500 text-white px-3 py-1 rounded" data-id="${r.id}">Reject</button>
+              <button class="approve-btn btn btn-sm btn-success" data-id="${r.id}">Approve</button>
+              <button class="reject-btn btn btn-sm btn-danger" data-id="${r.id}">Reject</button>
             </div>
           </div>
         `).join('')}

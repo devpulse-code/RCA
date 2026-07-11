@@ -29,34 +29,34 @@ export class FileTable {
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-100">Files</h2>
         <div>
-          <button id="btn-upload-file" class="bg-green-600 text-white px-4 py-2 rounded mr-2">Upload File</button>
-          <button id="btn-bulk-delete" class="bg-red-500 text-white px-3 py-1 rounded" disabled>Delete Selected</button>
+          <button id="btn-upload-file" class="btn btn-success mr-2">Upload File</button>
+          <button id="btn-bulk-delete" class="btn btn-danger btn-sm" disabled>Delete Selected</button>
         </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full bg-gray-900 rounded shadow">
-          <thead class="bg-gray-800">
+      <div class="table-container">
+        <table>
+          <thead>
             <tr>
-              <th class="p-2"><input type="checkbox" id="select-all-files"></th>
-              <th class="p-2 text-left text-gray-200">Name</th>
-              <th class="p-2 text-left text-gray-200">Type</th>
-              <th class="p-2 text-left text-gray-200">Groups</th>
-              <th class="p-2 text-left text-gray-200">Size</th>
-              <th class="p-2 text-left text-gray-200">Status</th>
-              <th class="p-2 text-left text-gray-200">Actions</th>
+              <th><input type="checkbox" id="select-all-files"></th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Groups</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             ${this.files.map(f => `
-              <tr data-id="${f.id}" class="border-b border-gray-700">
-                <td class="p-2"><input type="checkbox" class="file-checkbox" value="${f.id}"></td>
-                <td class="p-2 text-gray-200">${f.name}</td>
-                <td class="p-2 text-gray-200">${f.storage_type}</td>
-                <td class="p-2 text-gray-200">${(f.groups || []).join(', ')}</td>
-                <td class="p-2 text-gray-200">${f.size ? (f.size/1024).toFixed(1)+' KB' : ''}</td>
-                <td class="p-2 text-gray-200">${f.status}</td>
-                <td class="p-2">
-                  <button class="delete-file-btn text-red-400 hover:underline" data-id="${f.id}">Delete</button>
+              <tr data-id="${f.id}">
+                <td><input type="checkbox" class="file-checkbox" value="${f.id}"></td>
+                <td>${f.name}</td>
+                <td>${f.storage_type}</td>
+                <td>${(f.groups || []).join(', ')}</td>
+                <td>${f.size ? (f.size/1024).toFixed(1)+' KB' : ''}</td>
+                <td>${f.status}</td>
+                <td>
+                  <button class="delete-file-btn btn btn-sm btn-danger" data-id="${f.id}">Delete</button>
                 </td>
               </tr>
             `).join('')}
@@ -122,29 +122,33 @@ export class FileTable {
 
     const content = `
       <form id="upload-file-form" class="space-y-4">
-        <input type="text" name="name" placeholder="File name" required class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-        <textarea name="description" placeholder="Description (optional)" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded"></textarea>
-        <div>
-          <label class="block text-sm font-medium text-gray-200">Storage Type</label>
-          <select name="storage_type" id="storage-type-select" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-            <option value="local">Local File</option>
-            <option value="terabox">Terabox Link</option>
-          </select>
-        </div>
+        <label class="form-label">File Name</label>
+        <input type="text" name="name" required class="form-input" placeholder="e.g. Project Alpha">
+
+        <label class="form-label">Description (optional)</label>
+        <textarea name="description" class="form-textarea" placeholder="Brief description..."></textarea>
+
+        <label class="form-label">Storage Type</label>
+        <select name="storage_type" id="storage-type-select" class="form-select">
+          <option value="local">Local File</option>
+          <option value="terabox">Terabox Link</option>
+        </select>
+
         <div id="local-file-section">
-          <label class="block text-sm font-medium text-gray-200">Choose File</label>
-          <input type="file" name="file" class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+          <label class="form-label">Choose File</label>
+          <input type="file" name="file" class="form-input">
         </div>
+
         <div id="terabox-section" class="hidden">
-          <label class="block text-sm font-medium text-gray-200">Terabox Share Link</label>
-          <input type="text" name="terabox_url" placeholder="https://..." class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
+          <label class="form-label">Terabox Share Link</label>
+          <input type="text" name="terabox_url" class="form-input" placeholder="https://...">
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-200">Target Groups</label>
-          <select name="groups" multiple class="w-full border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">${groupOptions}</select>
-          <p class="text-xs text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+
+        <label class="form-label">Target Groups</label>
+        <select name="groups" multiple class="form-select">${groupOptions}</select>
+        <p class="text-xs text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+
+        <button type="submit" class="btn btn-primary w-full">Upload</button>
       </form>
     `;
 
