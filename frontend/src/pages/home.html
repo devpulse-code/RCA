@@ -8,62 +8,66 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/home.css" />
 </head>
 <body>
-    <canvas id="observatory-canvas"></canvas>
+    <div id="page-transition-wrapper">
+        <canvas id="observatory-canvas"></canvas>
 
-    <div class="observatory-main">
-        <div class="top-bar">
-            <a href="/pages/ddm/admin-login.html" class="admin-link">
-                <span class="star-icon" aria-hidden="true">★</span> Admin
-            </a>
-        </div>
-
-        <div class="content-grid">
-            <div class="brand-pillar">
-                <span class="wordmark">RCA</span>
-                <div class="nav-dots">
-                    <span class="dot active"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>
+        <div class="observatory-main">
+            <div class="top-bar">
+                <a href="/pages/ddm/admin-login.html" class="admin-link">
+                    <span class="star-icon" aria-hidden="true">★</span> Admin
+                </a>
             </div>
 
-            <div class="content-plane">
-                <h1 class="typing-headline" id="headline"></h1>
-                <p class="mission-line">
-                    A secure, AI‑augmented research platform.<br>
-                    Observe. Analyse. Connect.
-                </p>
+            <div class="content-grid">
+                <div class="brand-pillar">
+                    <span class="wordmark">RCA</span>
+                    <div class="nav-dots">
+                        <span class="dot active"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                </div>
 
-                <button class="access-node" id="ddm-access-btn">
-                    <span class="node-ring"></span>
-                    <span class="node-label">Enter DDM</span>
-                    <span class="node-arrow">→</span>
-                </button>
+                <div class="content-plane">
+                    <h1 class="typing-headline" id="headline"></h1>
+                    <p class="mission-line">
+                        A secure, AI‑augmented research platform.<br>
+                        Observe. Analyse. Connect.
+                    </p>
+
+                    <button class="access-node" id="ddm-access-btn">
+                        <span class="node-ring"></span>
+                        <span class="node-label">Enter DDM</span>
+                        <span class="node-arrow">→</span>
+                    </button>
+                </div>
+
+                <aside class="data-strip">
+                    <div class="data-point">
+                        <span class="data-label">Documents Indexed</span>
+                        <span class="data-value" id="doc-count">—</span>
+                    </div>
+                    <div class="data-point">
+                        <span class="data-label">Active Sessions</span>
+                        <span class="data-value" id="session-count">—</span>
+                    </div>
+                    <div class="data-point">
+                        <span class="data-label">Last Update</span>
+                        <span class="data-value" id="last-update">—</span>
+                    </div>
+                </aside>
             </div>
 
-            <aside class="data-strip">
-                <div class="data-point">
-                    <span class="data-label">Documents Indexed</span>
-                    <span class="data-value" id="doc-count">—</span>
-                </div>
-                <div class="data-point">
-                    <span class="data-label">Active Sessions</span>
-                    <span class="data-value" id="session-count">—</span>
-                </div>
-                <div class="data-point">
-                    <span class="data-label">Last Update</span>
-                    <span class="data-value" id="last-update">—</span>
-                </div>
-            </aside>
+            <div id="public-announcements" class="public-announcements-container"></div>
         </div>
-
-        <!-- Public announcements panel -->
-        <div id="public-announcements" class="public-announcements-container"></div>
     </div>
 
+    <script src="/js/theme.js"></script>
+    <script src="/js/page-transition.js"></script>
     <script src="/js/home.js"></script>
 </body>
 </html>

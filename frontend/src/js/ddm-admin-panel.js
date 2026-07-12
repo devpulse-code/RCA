@@ -13,7 +13,7 @@ async function verifySession() {
             const data = await res.json();
             if (data.role === 'admin') return true;
         }
-        window.location.href = '/pages/ddm/admin-login.html';
+        navigateTo('/pages/ddm/admin-login.html');
         return false;
     } catch (e) {
         showError('Backend unreachable');
@@ -82,7 +82,7 @@ function loadSection(section) {
 
 document.getElementById("logout-btn").addEventListener("click", () => {
     document.cookie = "admin_session=; Max-Age=0; path=/";
-    window.location.href = "/pages/ddm/admin-login.html";
+    navigateTo("/pages/ddm/admin-login.html");
 });
 
 (async function init() {

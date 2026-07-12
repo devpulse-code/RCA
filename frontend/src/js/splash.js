@@ -3,20 +3,16 @@
 window.addEventListener('DOMContentLoaded', () => {
     const loadingBar = document.getElementById('loading-bar');
 
-    // After all letters have finished their animation (max delay 0.5s + duration 0.7s)
     setTimeout(() => {
         loadingBar.classList.add('active');
-    }, 1300);  // slightly after the last letter appears
+    }, 1300);
 
-    // After the loading bar has filled and a short pause, fade out and redirect
-    // Total splash duration approx. 3.5 seconds
     setTimeout(() => {
         document.body.classList.add('fade-out');
     }, 3200);
 
-    // Redirect after fade-out
     setTimeout(() => {
-        window.location.href = '/pages/home.html';   // or '/pages/ddm/login.html' if you prefer
+        navigateTo('/pages/home.html');
     }, 4000);
 });
 // end of RCA/frontend/src/js/splash.js

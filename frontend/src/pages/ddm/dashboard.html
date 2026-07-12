@@ -8,25 +8,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS for component styling -->
+    <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/tailwind.min.css">
-    <!-- Page-specific custom styles -->
     <link rel="stylesheet" href="/css/ddm-dashboard.css">
 </head>
 <body>
-    <div id="toast-container"></div>
-    <div id="error-banner" class="error-banner"></div>
+    <div id="page-transition-wrapper">
+        <div id="toast-container"></div>
+        <div id="error-banner" class="error-banner"></div>
 
-    <div class="dashboard-header">
-        <h1>DDM Dashboard</h1>
-        <button id="logout-btn" class="logout-btn">Logout</button>
+        <div class="dashboard-header">
+            <h1>DDM Dashboard</h1>
+            <button id="logout-btn" class="btn btn-secondary logout-btn">Logout</button>
+        </div>
+
+        <div class="container">
+            <div id="announcements-container" class="announcements-section"></div>
+            <div id="file-list-container" class="file-list-section"></div>
+        </div>
     </div>
 
-    <div class="container">
-        <div id="announcements-container" class="announcements-section"></div>
-        <div id="file-list-container" class="file-list-section"></div>
-    </div>
-
+    <script src="/js/theme.js"></script>
+    <script src="/js/page-transition.js"></script>
     <script type="module" src="/js/ddm-dashboard.js"></script>
 </body>
 </html>

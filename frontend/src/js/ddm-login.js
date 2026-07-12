@@ -56,7 +56,7 @@ form.addEventListener('submit', async (e) => {
 
     try {
         await passcodeLogin(passcode);
-        window.location.href = '/pages/ddm/dashboard.html';
+        navigateTo('/pages/ddm/dashboard.html');
     } catch (err) {
         let message = 'Login failed. Please try again.';
         let retryAfter = null;

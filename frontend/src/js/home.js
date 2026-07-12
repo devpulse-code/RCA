@@ -116,23 +116,20 @@ const phrases = [
 let phraseIndex = 0;
 let charIndex = 0;
 let isDeleting = false;
-let isPaused = false; // Used during fade transitions
+let isPaused = false;
 
 function fadeOutAndChange() {
-    // Start fade out
     headline.classList.add('fade-out');
 
     setTimeout(() => {
-        // After fade out, clear text and start new phrase
         headline.textContent = '';
         charIndex = 0;
         isDeleting = false;
         headline.classList.remove('fade-out');
-        // Slight delay to let the class removal register before typing starts
         setTimeout(() => {
             typeWriter();
         }, 50);
-    }, 350); // Matches CSS transition duration
+    }, 350);
 }
 
 function typeWriter() {
@@ -149,7 +146,6 @@ function typeWriter() {
     }
 
     if (!isDeleting && charIndex === currentPhrase.length) {
-        // Finished typing, wait then start fade out
         isPaused = true;
         setTimeout(() => {
             isPaused = false;
@@ -158,11 +154,7 @@ function typeWriter() {
         }, 2000);
         return;
     } else if (isDeleting && charIndex === 0) {
-        // Finished deleting (now inside fadeOutAndChange we handle phrase advancement)
-        // Actually, fadeOutAndChange will handle phraseIndex change and restart.
-        // So here we just stop.
         isPaused = true;
-        // Advance to next phrase
         phraseIndex = (phraseIndex + 1) % phrases.length;
         fadeOutAndChange();
         return;
@@ -172,7 +164,6 @@ function typeWriter() {
     setTimeout(typeWriter, speed);
 }
 
-// Start the typewriter after a short delay to sync with entrance animation
 setTimeout(() => {
     typeWriter();
 }, 300);
@@ -208,12 +199,11 @@ function setData(id, value) {
 fetchStats();
 setInterval(fetchStats, 60000);
 
-// ── Public Announcements with fade in ────────────────
+// ── Public Announcements ────────────────
 async function fetchPublicAnnouncements() {
     const container = document.getElementById('public-announcements');
     if (!container) return;
 
-    // Set to loading state (transparent)
     container.classList.add('loading');
     container.classList.remove('loaded');
 
@@ -240,14 +230,12 @@ async function fetchPublicAnnouncements() {
         }
 
         container.innerHTML = html;
-        // Trigger reflow to ensure transition works
         void container.offsetWidth;
         container.classList.remove('loading');
         container.classList.add('loaded');
     } catch (err) {
         console.warn('Announcements fetch error:', err);
         container.innerHTML = '<div class="announcements-panel text-center"><p class="text-dim-italic">Unable to load announcements.</p></div>';
-        void container.offsetWidth;
         container.classList.remove('loading');
         container.classList.add('loaded');
     }
@@ -263,7 +251,7 @@ fetchPublicAnnouncements();
 
 // ── DDM Access Button ──────────────────────────────────
 document.getElementById('ddm-access-btn').addEventListener('click', () => {
-    window.location.href = '/pages/ddm/login.html';
+    navigateTo('/pages/ddm/login.html');
 });
 
 // end of RCA/frontend/src/js/home.js

@@ -18,18 +18,18 @@ async function verifySession() {
                 return true;
             }
         }
-        window.location.href = '/pages/ddm/login.html';
+        navigateTo('/pages/ddm/login.html');
         return false;
     } catch (e) {
         showError('Backend unreachable – redirecting to login');
-        setTimeout(() => { window.location.href = '/pages/ddm/login.html'; }, 2000);
+        setTimeout(() => { navigateTo('/pages/ddm/login.html'); }, 2000);
         return false;
     }
 }
 
 document.getElementById("logout-btn").addEventListener("click", () => {
     document.cookie = "user_session=; Max-Age=0; path=/";
-    window.location.href = "/pages/ddm/login.html";
+    navigateTo("/pages/ddm/login.html");
 });
 
 (async function init() {

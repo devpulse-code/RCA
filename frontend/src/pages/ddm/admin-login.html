@@ -8,46 +8,48 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/ddm-admin-login.css">
 </head>
 <body>
-    <div class="login-wrapper">
-        <div class="card">
-            <h1>Admin Login</h1>
-            <!-- Login form -->
-            <div id="login-section">
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" required>
-                    </div>
-                    <button type="submit" class="btn">Login</button>
-                </form>
-            </div>
-            <!-- TOTP prompt -->
-            <div id="totp-section" class="hidden-section">
-                <p class="prompt-text">Enter the 6‑digit code from your authenticator app.</p>
-                <div class="form-group">
-                    <input type="text" id="totp-code" placeholder="000000" maxlength="6">
+    <div id="page-transition-wrapper">
+        <div class="login-wrapper">
+            <div class="card">
+                <h1>Admin Login</h1>
+                <div id="login-section">
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full">Login</button>
+                    </form>
                 </div>
-                <button id="totp-submit" class="btn">Verify</button>
-                <button id="show-recovery" class="secondary-btn">Use Recovery Code</button>
-            </div>
-            <!-- Recovery code prompt -->
-            <div id="recovery-section" class="hidden-section">
-                <p class="prompt-text">Enter one of your recovery codes.</p>
-                <div class="form-group">
-                    <input type="text" id="recovery-code">
+                <div id="totp-section" class="hidden-section">
+                    <p class="prompt-text">Enter the 6‑digit code from your authenticator app.</p>
+                    <div class="form-group">
+                        <input type="text" id="totp-code" placeholder="000000" maxlength="6">
+                    </div>
+                    <button id="totp-submit" class="btn btn-primary w-full">Verify</button>
+                    <button id="show-recovery" class="btn btn-secondary w-full">Use Recovery Code</button>
                 </div>
-                <button id="recovery-submit" class="btn">Verify</button>
+                <div id="recovery-section" class="hidden-section">
+                    <p class="prompt-text">Enter one of your recovery codes.</p>
+                    <div class="form-group">
+                        <input type="text" id="recovery-code">
+                    </div>
+                    <button id="recovery-submit" class="btn btn-primary w-full">Verify</button>
+                </div>
+                <p id="error-message" class="error-message"></p>
             </div>
-            <p id="error-message" class="error-message"></p>
         </div>
     </div>
+    <script src="/js/theme.js"></script>
+    <script src="/js/page-transition.js"></script>
     <script type="module" src="/js/ddm-admin-login.js"></script>
 </body>
 </html>

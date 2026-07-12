@@ -1,15 +1,8 @@
 /* RCA/frontend/src/css/home.css */
 :root {
-    --bg-deep: #07090F;
-    --accent: #0D5E8C;
-    --accent-soft: #1A7CB5;
-    --text-main: #E1E6EC;
-    --text-dim: #7B8494;
     --font-display: 'Playfair Display', serif;
     --font-ui: 'Space Grotesk', sans-serif;
     --font-mono: 'Source Code Pro', monospace;
-    --panel-bg: rgba(7, 9, 15, 0.75);
-    --panel-border: rgba(13, 94, 140, 0.25);
 }
 
 * {
@@ -19,13 +12,12 @@
 }
 
 body {
-    background: var(--bg-deep);
     overflow: hidden;
     font-family: var(--font-ui);
-    color: var(--text-main);
     height: 100vh;
     width: 100vw;
     position: relative;
+    background: var(--bg-primary);
 }
 
 #observatory-canvas {
@@ -57,7 +49,7 @@ body {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--text-dim);
+    color: var(--text-secondary);
     text-decoration: none;
     transition: color 0.3s;
     display: inline-flex;
@@ -115,7 +107,7 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--text-dim);
+    background: var(--text-secondary);
     opacity: 0.3;
     transition: opacity 0.3s;
 }
@@ -125,7 +117,6 @@ body {
     box-shadow: 0 0 10px var(--accent);
 }
 
-/* ── Content Plane with entrance animation ── */
 .content-plane {
     display: flex;
     flex-direction: column;
@@ -146,12 +137,11 @@ body {
     }
 }
 
-/* Typewriter headline with smooth opacity transition */
 .typing-headline {
     font-family: var(--font-mono);
     font-size: 3.2rem;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--text-primary);
     min-height: 4rem;
     line-height: 1.2;
     position: relative;
@@ -171,7 +161,6 @@ body {
     transition: opacity 0.35s ease;
 }
 
-/* Keep cursor visible when text fades */
 .typing-headline.fade-out::after {
     opacity: 0;
 }
@@ -185,7 +174,7 @@ body {
     margin-top: 1.5rem;
     font-size: 1.15rem;
     line-height: 1.7;
-    color: var(--text-dim);
+    color: var(--text-secondary);
     max-width: 440px;
     opacity: 0;
     animation: fadeSlideUp 1.2s 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
@@ -201,7 +190,7 @@ body {
     align-items: center;
     gap: 1rem;
     padding: 0;
-    color: var(--text-main);
+    color: var(--text-primary);
     transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     opacity: 0;
     animation: fadeSlideUp 1.2s 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
@@ -263,16 +252,12 @@ body {
     animation-delay: 1.1s;
 }
 
-.data-point:hover {
-    opacity: 1;
-}
-
 .data-label {
     display: block;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--text-dim);
+    color: var(--text-secondary);
 }
 
 .data-value {
@@ -280,11 +265,11 @@ body {
     font-family: var(--font-mono);
     font-size: 1.4rem;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--text-primary);
     margin-top: 0.25rem;
 }
 
-/* ── Public Announcements Panel ── */
+/* Announcements */
 .public-announcements-container {
     width: 100%;
     max-width: 800px;
@@ -300,7 +285,6 @@ body {
 .public-announcements-container.loading {
     opacity: 0;
 }
-
 .public-announcements-container.loaded {
     opacity: 1;
 }
@@ -308,25 +292,22 @@ body {
 .public-announcements-container::-webkit-scrollbar {
     width: 5px;
 }
-
 .public-announcements-container::-webkit-scrollbar-track {
     background: transparent;
 }
-
 .public-announcements-container::-webkit-scrollbar-thumb {
     background-color: var(--accent);
     border-radius: 10px;
     border: 1px solid transparent;
     background-clip: padding-box;
 }
-
 .public-announcements-container::-webkit-scrollbar-thumb:hover {
     background-color: var(--accent-soft);
 }
 
 .announcements-panel {
     background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     backdrop-filter: blur(6px);
@@ -343,9 +324,11 @@ body {
 
 .announcement-item {
     padding: 0.4rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
-
+[data-theme="dark"] .announcement-item {
+    border-bottom-color: rgba(255,255,255,0.06);
+}
 .announcement-item:last-child {
     border-bottom: none;
 }
@@ -354,33 +337,29 @@ body {
     font-family: var(--font-ui);
     font-size: 0.95rem;
     font-weight: 500;
-    color: var(--text-main);
+    color: var(--text-primary);
     margin-bottom: 0.15rem;
 }
-
 .announcement-item p {
     font-size: 0.85rem;
-    color: var(--text-dim);
+    color: var(--text-secondary);
     line-height: 1.4;
     margin-bottom: 0.25rem;
 }
-
 .announcement-date {
     font-size: 0.7rem;
-    color: var(--text-dim);
+    color: var(--text-secondary);
     opacity: 0.7;
 }
 
 .text-center {
     text-align: center;
 }
-
 .text-dim-italic {
-    color: var(--text-dim);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
-/* Responsive */
 @media (max-width: 900px) {
     .content-grid {
         grid-template-columns: 80px 1fr 200px;
@@ -429,7 +408,7 @@ body {
     .data-strip {
         flex-direction: row;
         justify-content: space-around;
-        border-top: 1px solid rgba(255,255,255,0.08);
+        border-top: 1px solid rgba(0,0,0,0.08);
         padding-top: 1rem;
         padding-right: 0;
     }

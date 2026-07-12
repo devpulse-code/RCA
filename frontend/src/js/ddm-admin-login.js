@@ -16,11 +16,11 @@ async function verifySession() {
         if (res.ok) {
             const data = await res.json();
             if (data.authenticated && data.role === "admin") {
-                window.location.href = "/pages/ddm/admin-panel.html";
+                navigateTo("/pages/ddm/admin-panel.html");
             }
         }
     } catch (e) {
-        // Session check failed silently
+        // Silent
     }
 }
 
@@ -31,7 +31,6 @@ form.addEventListener("submit", async (e) => {
     const password = document.getElementById("password").value;
 
     try {
-        // Corrected URL: /api/ddm/auth/admin/login
         const res = await fetch("/api/ddm/auth/admin/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -50,7 +49,7 @@ form.addEventListener("submit", async (e) => {
             loginSection.style.display = "none";
             totpSection.style.display = "block";
         } else {
-            window.location.href = "/pages/ddm/admin-panel.html";
+            navigateTo("/pages/ddm/admin-panel.html");
         }
     } catch (err) {
         showError("Network error. Please try again.");
@@ -60,8 +59,6 @@ form.addEventListener("submit", async (e) => {
 document.getElementById("totp-submit").addEventListener("click", async () => {
     const code = document.getElementById("totp-code").value;
     try {
-        // Note: you may later need to change this URL once the 2FA endpoint is implemented.
-        // For now it points to the same login route; adjust after you add the real 2FA endpoint.
         const res = await fetch("/api/ddm/auth/admin/2fa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -73,7 +70,7 @@ document.getElementById("totp-submit").addEventListener("click", async () => {
             showError(err.detail || "Invalid code");
             return;
         }
-        window.location.href = "/pages/ddm/admin-panel.html";
+        navigateTo("/pages/ddm/admin-panel.html");
     } catch (err) {
         showError("Network error.");
     }
@@ -93,7 +90,7 @@ document.getElementById("recovery-submit").addEventListener("click", async () =>
             showError(err.detail || "Invalid code");
             return;
         }
-        window.location.href = "/pages/ddm/admin-panel.html";
+        navigateTo("/pages/ddm/admin-panel.html");
     } catch (err) {
         showError("Network error.");
     }

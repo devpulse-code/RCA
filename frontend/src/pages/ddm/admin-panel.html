@@ -8,33 +8,36 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS for component styling -->
+    <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/tailwind.min.css">
-    <!-- Page-specific custom styles -->
     <link rel="stylesheet" href="/css/ddm-admin-panel.css">
 </head>
 <body>
-    <div id="error-banner" class="error-banner"></div>
+    <div id="page-transition-wrapper">
+        <div id="error-banner" class="error-banner"></div>
 
-    <aside class="sidebar">
-        <h2>Admin Panel</h2>
-        <nav>
-            <a href="#users" data-section="users">Users</a>
-            <a href="#groups" data-section="groups">Groups</a>
-            <a href="#files" data-section="files">Files</a>
-            <a href="#upload-queue" data-section="upload-queue">Upload Queue</a>
-            <a href="#announcements" data-section="announcements">Announcements</a>
-            <a href="#audit-log" data-section="audit-log">Audit Log</a>
-            <a href="#settings" data-section="settings">Settings</a>
-        </nav>
-        <button id="logout-btn" class="logout-btn">Logout</button>
-    </aside>
+        <aside class="sidebar">
+            <h2>Admin Panel</h2>
+            <nav>
+                <a href="#users" data-section="users">Users</a>
+                <a href="#groups" data-section="groups">Groups</a>
+                <a href="#files" data-section="files">Files</a>
+                <a href="#upload-queue" data-section="upload-queue">Upload Queue</a>
+                <a href="#announcements" data-section="announcements">Announcements</a>
+                <a href="#audit-log" data-section="audit-log">Audit Log</a>
+                <a href="#settings" data-section="settings">Settings</a>
+            </nav>
+            <button id="logout-btn" class="btn btn-danger logout-btn">Logout</button>
+        </aside>
 
-    <main class="main-content">
-        <h1 id="section-title">Loading...</h1>
-        <div id="section-content"></div>
-    </main>
+        <main class="main-content">
+            <h1 id="section-title">Loading...</h1>
+            <div id="section-content"></div>
+        </main>
+    </div>
 
+    <script src="/js/theme.js"></script>
+    <script src="/js/page-transition.js"></script>
     <script type="module" src="/js/ddm-admin-panel.js"></script>
 </body>
 </html>

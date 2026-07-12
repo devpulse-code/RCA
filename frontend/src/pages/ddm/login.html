@@ -8,25 +8,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/ddm-login.css">
 </head>
 <body>
-    <div class="login-container">
-        <a href="/" class="home-link">← Back to RCA Home</a>
-        <div class="card">
-            <h1>DDM Login</h1>
-            <form id="passcode-form">
-                <div class="form-group">
-                    <label for="passcode">Passcode</label>
-                    <input type="password" id="passcode" name="passcode" required autocomplete="off" placeholder="Enter your passcode">
-                </div>
-                <button type="submit" id="submit-btn" class="submit-btn">Sign In</button>
-            </form>
-            <p id="error-message" class="error-message"></p>
-            <p id="rate-limit-countdown" class="rate-limit-message"></p>
+    <div id="page-transition-wrapper">
+        <div class="login-container">
+            <a href="/" class="home-link">← Back to RCA Home</a>
+            <div class="card">
+                <h1>DDM Login</h1>
+                <form id="passcode-form">
+                    <div class="form-group">
+                        <label for="passcode">Passcode</label>
+                        <input type="password" id="passcode" name="passcode" required autocomplete="off" placeholder="Enter your passcode">
+                    </div>
+                    <button type="submit" id="submit-btn" class="btn btn-primary w-full">Sign In</button>
+                </form>
+                <p id="error-message" class="error-message"></p>
+                <p id="rate-limit-countdown" class="rate-limit-message"></p>
+            </div>
+            <div id="public-announcements" class="public-announcements"></div>
         </div>
-        <div id="public-announcements" class="public-announcements"></div>
     </div>
+    <script src="/js/theme.js"></script>
+    <script src="/js/page-transition.js"></script>
     <script type="module" src="/js/ddm-login.js"></script>
 </body>
 </html>

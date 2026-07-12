@@ -1,0 +1,218 @@
+/* RCA/frontend/src/css/global.css */
+/* ── Theme Variables ────────────────────────────────── */
+:root {
+  /* Light theme (default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #0D5E8C;
+  --accent-soft: #1A7CB5;
+  --border-color: #d1d5db;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  --panel-bg: rgba(255,255,255,0.92);
+  --modal-bg: rgba(255,255,255,0.97);
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --error: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  
+  /* Button specific */
+  --btn-primary-bg: linear-gradient(135deg, var(--accent), var(--accent-soft));
+  --btn-primary-text: #ffffff;
+  --btn-primary-shadow: 0 0 10px rgba(13,94,140,0.3);
+  --btn-primary-hover-shadow: 0 0 16px rgba(13,94,140,0.5);
+  
+  --btn-success-bg: linear-gradient(135deg, #10B981, #059669);
+  --btn-success-text: #ffffff;
+  --btn-success-shadow: 0 0 10px rgba(16,185,129,0.3);
+  --btn-success-hover-shadow: 0 0 16px rgba(16,185,129,0.5);
+  
+  --btn-danger-bg: linear-gradient(135deg, #EF4444, #DC2626);
+  --btn-danger-text: #ffffff;
+  --btn-danger-shadow: 0 0 10px rgba(239,68,68,0.3);
+  --btn-danger-hover-shadow: 0 0 16px rgba(239,68,68,0.5);
+  
+  --btn-warning-bg: linear-gradient(135deg, #F59E0B, #D97706);
+  --btn-warning-text: #111827;
+  --btn-warning-shadow: 0 0 10px rgba(245,158,11,0.3);
+  --btn-warning-hover-shadow: 0 0 16px rgba(245,158,11,0.5);
+  
+  --btn-secondary-bg: transparent;
+  --btn-secondary-text: var(--text-secondary);
+  --btn-secondary-border: rgba(13,94,140,0.4);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #07090F;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1f2937;
+  --text-primary: #E1E6EC;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --border-color: rgba(13,94,140,0.25);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.7);
+  --panel-bg: rgba(7,9,15,0.75);
+  --modal-bg: rgba(7,9,15,0.97);
+  --input-bg: rgba(255,255,255,0.05);
+  --input-border: rgba(13,94,140,0.4);
+}
+
+/* ── Global Reset / Base ────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* ── Unified Button System (based on File Management) ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  box-shadow: var(--btn-primary-shadow);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: var(--btn-primary-hover-shadow);
+  filter: brightness(1.05);
+}
+
+.btn-success {
+  background: var(--btn-success-bg);
+  color: var(--btn-success-text);
+  box-shadow: var(--btn-success-shadow);
+}
+.btn-success:hover:not(:disabled) {
+  box-shadow: var(--btn-success-hover-shadow);
+  filter: brightness(1.05);
+}
+
+.btn-danger {
+  background: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+  box-shadow: var(--btn-danger-shadow);
+}
+.btn-danger:hover:not(:disabled) {
+  box-shadow: var(--btn-danger-hover-shadow);
+  filter: brightness(1.05);
+}
+
+.btn-warning {
+  background: var(--btn-warning-bg);
+  color: var(--btn-warning-text);
+  box-shadow: var(--btn-warning-shadow);
+}
+.btn-warning:hover:not(:disabled) {
+  box-shadow: var(--btn-warning-hover-shadow);
+  filter: brightness(1.05);
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--btn-secondary-border);
+  color: var(--btn-secondary-text);
+}
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.78rem;
+  border-radius: 4px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: none;
+}
+
+/* ── Page Transition Wrapper ─────────────────────────── */
+#page-transition-wrapper {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+#page-transition-wrapper.page-transition-exit {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+#page-transition-wrapper.page-transition-enter {
+  opacity: 0;
+  transform: scale(1.03);
+}
+
+/* ── Theme Toggle Button ────────────────────────────── */
+.theme-toggle-btn {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 99;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-toggle-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* ── Modal Entrance Animation ───────────────────────── */
+.modal-enter {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.modal-enter.modal-entering {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+.modal-enter.modal-exit {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+}
+/* end of RCA/frontend/src/css/global.css */

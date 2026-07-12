@@ -11,15 +11,14 @@ export class UploadForm {
 
   render() {
     this.container.innerHTML = `
-      <form id="upload-request-form" class="space-y-4 p-4 bg-white rounded shadow">
-        <h3 class="font-semibold">Upload a file (request admin approval)</h3>
-        <input type="text" name="name" placeholder="File name" required class="w-full border p-2">
-        <textarea name="description" placeholder="Description" class="w-full border p-2"></textarea>
-        <select name="groups" multiple class="w-full border p-2">
-          <!-- groups will be populated dynamically if needed -->
+      <form id="upload-request-form" class="space-y-4 p-4 bg-[var(--bg-secondary)] rounded shadow">
+        <h3 class="font-semibold text-[var(--text-primary)]">Upload a file (request admin approval)</h3>
+        <input type="text" name="name" placeholder="File name" required class="w-full border p-2 rounded bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]">
+        <textarea name="description" placeholder="Description" class="w-full border p-2 rounded bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]"></textarea>
+        <select name="groups" multiple class="w-full border p-2 rounded bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]">
         </select>
         <input type="file" name="file" required class="w-full">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit Request</button>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
       </form>
     `;
     this.form = document.getElementById("upload-request-form");
