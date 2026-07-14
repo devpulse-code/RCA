@@ -82,7 +82,7 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// Load public announcements
+// Load public announcements with themed markup
 (async function loadPublicAnnouncements() {
     const container = document.getElementById('public-announcements');
     if (!container) return;
@@ -91,20 +91,19 @@ form.addEventListener('submit', async (e) => {
         if (!res.ok) throw new Error('Failed');
         const data = await res.json();
         if (data.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 italic">No public announcements.</p>';
+            container.innerHTML = '<p class="text-muted" style="font-style: italic;">No public announcements.</p>';
             return;
         }
-        let html = '<div class="announcements-panel"><h2>Announcements</h2>';
+        let html = '<h2 class="text-primary">Announcements</h2>';
         data.forEach(a => {
             html += `
                 <div class="announcement-item">
                     <h3>${escapeHtml(a.title)}</h3>
                     <p>${escapeHtml(a.body)}</p>
-                    <span class="text-sm text-gray-400">${new Date(a.created_at).toLocaleDateString()}</span>
+                    <span class="text-sm text-muted">${new Date(a.created_at).toLocaleDateString()}</span>
                 </div>
             `;
         });
-        html += '</div>';
         container.innerHTML = html;
     } catch (err) {
         console.warn('Could not load public announcements:', err);

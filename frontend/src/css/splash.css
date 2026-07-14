@@ -1,4 +1,5 @@
 /* RCA/frontend/src/css/splash.css */
+
 * {
     margin: 0;
     padding: 0;
@@ -6,13 +7,13 @@
 }
 
 body {
-    background: #0A0D14;
+    background: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100vh;
     overflow: hidden;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--font-display);
     transition: opacity 0.8s ease;
 }
 body.fade-out {
@@ -28,7 +29,7 @@ body.fade-out {
     font-weight: 900;
     letter-spacing: 0.08em;
     line-height: 1;
-    color: #E1E6EC;
+    color: var(--text-primary);
     display: flex;
     justify-content: center;
 }
@@ -41,7 +42,7 @@ body.fade-out {
 }
 
 .letter.accent {
-    color: #0D5E8C;
+    color: var(--accent);
     animation-name: letterRevealAccent;
 }
 
@@ -53,7 +54,7 @@ body.fade-out {
 .loading-bar {
     width: 0;
     height: 2px;
-    background: linear-gradient(90deg, #0D5E8C, transparent);
+    background: linear-gradient(90deg, var(--accent), transparent);
     margin: 2rem auto 0;
     transition: width 1.2s ease;
     max-width: 120px;

@@ -16,24 +16,32 @@
     <div id="page-transition-wrapper">
         <div id="error-banner" class="error-banner"></div>
 
-        <aside class="sidebar">
-            <h2>Admin Panel</h2>
-            <nav>
-                <a href="#users" data-section="users">Users</a>
-                <a href="#groups" data-section="groups">Groups</a>
-                <a href="#files" data-section="files">Files</a>
-                <a href="#upload-queue" data-section="upload-queue">Upload Queue</a>
-                <a href="#announcements" data-section="announcements">Announcements</a>
-                <a href="#audit-log" data-section="audit-log">Audit Log</a>
-                <a href="#settings" data-section="settings">Settings</a>
-            </nav>
-            <button id="logout-btn" class="btn btn-danger logout-btn">Logout</button>
-        </aside>
+        <!-- Top header bar -->
+        <header class="admin-header">
+            <button id="theme-toggle" class="theme-toggle-btn header-theme-toggle" type="button"></button>
+            <button id="logout-btn" class="btn btn-danger">Logout</button>
+        </header>
 
-        <main class="main-content">
-            <h1 id="section-title">Loading...</h1>
-            <div id="section-content"></div>
-        </main>
+        <!-- Main layout: sidebar + content -->
+        <div class="admin-body">
+            <aside class="sidebar">
+                <h2>Admin Panel</h2>
+                <nav>
+                    <a href="#users" data-section="users">Users</a>
+                    <a href="#groups" data-section="groups">Groups</a>
+                    <a href="#files" data-section="files">Files</a>
+                    <a href="#upload-queue" data-section="upload-queue">Upload Queue</a>
+                    <a href="#announcements" data-section="announcements">Announcements</a>
+                    <a href="#audit-log" data-section="audit-log">Audit Log</a>
+                    <a href="#settings" data-section="settings">Settings</a>
+                </nav>
+            </aside>
+
+            <main class="main-content">
+                <h1 id="section-title">Loading...</h1>
+                <div id="section-content"></div>
+            </main>
+        </div>
     </div>
 
     <script src="/js/theme.js"></script>

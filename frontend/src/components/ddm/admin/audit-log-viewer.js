@@ -17,13 +17,13 @@ export default class AuditLogViewer {
     if (!this.container) return;
     this.container.innerHTML = `
       <div class="space-y-4">
-        <h2 class="text-xl font-semibold text-gray-100">Audit Log</h2>
+        <h2 class="text-primary">Audit Log</h2>
         <div class="flex flex-wrap gap-2 items-center">
-          <input type="date" id="filter-date-from" placeholder="From" class="border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-          <input type="date" id="filter-date-to" placeholder="To" class="border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-          <input type="text" id="filter-admin" placeholder="Admin username" class="border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-          <input type="text" id="filter-action" placeholder="Action" class="border border-gray-600 bg-gray-800 text-gray-200 p-2 rounded">
-          <button id="btn-apply-filters" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
+          <input type="date" id="filter-date-from" placeholder="From" class="form-input" style="width:auto">
+          <input type="date" id="filter-date-to" placeholder="To" class="form-input" style="width:auto">
+          <input type="text" id="filter-admin" placeholder="Admin username" class="form-input" style="width:auto">
+          <input type="text" id="filter-action" placeholder="Action" class="form-input" style="width:auto">
+          <button id="btn-apply-filters" class="btn btn-primary">Filter</button>
         </div>
         <div id="audit-log-table-container"></div>
         <div id="audit-log-pagination"></div>
@@ -60,58 +60,115 @@ export default class AuditLogViewer {
   }
 
   renderTable() {
-    if (!this.tableContainer) return;
-    if (!this.logs.length) {
-      this.tableContainer.innerHTML = "<p class=\"text-gray-400\">No log entries found.</p>";
-      return;
-    }
-    let html = `
-      <div class="overflow-x-auto">
-        <table class="w-full bg-gray-900 rounded shadow">
-          <thead class="bg-gray-800">
-            <tr>
-              <th class="p-2 text-left text-gray-200">Timestamp</th>
-              <th class="p-2 text-left text-gray-200">Admin</th>
-              <th class="p-2 text-left text-gray-200">Action</th>
-              <th class="p-2 text-left text-gray-200">Target</th>
-              <th class="p-2 text-left text-gray-200">Details</th>
-              <th class="p-2 text-left text-gray-200">IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this.logs.map(log => `
-              <tr class="border-b border-gray-700">
-                <td class="p-2 text-sm text-gray-200">${new Date(log.timestamp).toLocaleString()}</td>
-                <td class="p-2 text-gray-200">${log.admin_username || ''}</td>
-                <td class="p-2 text-gray-200">${log.action}</td>
-                <td class="p-2 text-gray-200">${log.target_type} #${log.target_id}</td>
-                <td class="p-2 text-xs text-gray-400">${JSON.stringify(log.details)}</td>
-                <td class="p-2 text-gray-200">${log.ip_address || ''}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+  if (!this.tableContainer) return;
+
+  if (!this.logs.length) {
+    this.tableContainer.innerHTML = `
+      <div class="table-container">
+        <p style="padding:1rem;color:var(--text-secondary);">
+          No log entries found.
+        </p>
       </div>
     `;
-    this.tableContainer.innerHTML = html;
+    return;
   }
 
-  renderPagination(data) {
-    if (!this.paginationContainer) return;
-    const { page, total_pages, total } = data;
-    let html = `<div class="flex items-center space-x-2 mt-2 text-sm text-gray-300">`;
-    html += `<span>${total} entries</span>`;
-    html += `<button class="px-3 py-1 border border-gray-600 rounded ${page <= 1 ? 'opacity-50 cursor-not-allowed' : ''}" ${page <= 1 ? 'disabled' : ''} data-page="${page-1}">Previous</button>`;
-    html += `<span>Page ${page} of ${total_pages}</span>`;
-    html += `<button class="px-3 py-1 border border-gray-600 rounded ${page >= total_pages ? 'opacity-50 cursor-not-allowed' : ''}" ${page >= total_pages ? 'disabled' : ''} data-page="${page+1}">Next</button>`;
-    html += `</div>`;
-    this.paginationContainer.innerHTML = html;
-    this.paginationContainer.querySelectorAll("button[data-page]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const newPage = parseInt(btn.dataset.page);
-        if (newPage >= 1 && newPage <= total_pages) this.load(newPage);
-      });
-    });
-  }
+  this.tableContainer.innerHTML = `
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Admin</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>Details</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${this.logs.map(log => `
+            <tr>
+              <td>${new Date(log.timestamp).toLocaleString()}</td>
+              <td>${log.admin_username ?? ""}</td>
+              <td>${log.action}</td>
+              <td>${log.target_type} #${log.target_id}</td>
+              <td><code>${JSON.stringify(log.details)}</code></td>
+              <td>${log.ip_address ?? ""}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+
+      </table>
+    </div>
+  `;
 }
+
+  renderPagination(data) {
+
+  if (!this.paginationContainer) return;
+
+  const { page, total_pages, total } = data;
+
+  this.paginationContainer.innerHTML = `
+    <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-top:1rem;
+        gap:1rem;
+        flex-wrap:wrap;
+    ">
+
+      <span style="color:var(--text-secondary);">
+        ${total} entries
+      </span>
+
+      <div style="display:flex;gap:.75rem;align-items:center;">
+
+        <button
+          class="btn"
+          data-page="${page-1}"
+          ${page<=1 ? "disabled" : ""}
+        >
+          Previous
+        </button>
+
+        <span style="color:var(--text-primary);">
+          Page ${page} of ${total_pages}
+        </span>
+
+        <button
+          class="btn"
+          data-page="${page+1}"
+          ${page>=total_pages ? "disabled" : ""}
+        >
+          Next
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+  this.paginationContainer
+      .querySelectorAll("button[data-page]")
+      .forEach(btn => {
+
+          btn.onclick = () => {
+
+              const newPage = Number(btn.dataset.page);
+
+              if(newPage>=1 && newPage<=total_pages){
+
+                  this.load(newPage);
+
+              }
+
+          };
+
+      });
+  }
+} 
 // end of RCA/frontend/src/components/ddm/admin/audit-log-viewer.js

@@ -1,9 +1,4 @@
 /* RCA/frontend/src/css/ddm-admin-login.css */
-:root {
-    --font-display: 'Playfair Display', serif;
-    --font-ui: 'Space Grotesk', sans-serif;
-    --font-mono: 'Source Code Pro', monospace;
-}
 
 * {
     margin: 0;
@@ -12,7 +7,6 @@
 }
 
 body {
-    font-family: var(--font-ui);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -34,12 +28,37 @@ body::before {
     pointer-events: none;
 }
 
+/* Top bar */
+.login-top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 50;
+    background: transparent;
+}
+
+.home-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+.home-link:hover {
+    color: var(--accent);
+}
+
 .login-wrapper {
     position: relative;
     z-index: 10;
     width: 100%;
     max-width: 420px;
     padding: 2rem;
+    margin-top: 3rem;
 }
 
 .card {
@@ -52,11 +71,8 @@ body::before {
 }
 
 .card h1 {
-    font-family: var(--font-display);
-    font-size: 2rem;
     text-align: center;
     margin-bottom: 2rem;
-    color: var(--text-primary);
 }
 
 .form-group {
@@ -106,7 +122,6 @@ body::before {
     display: none;
 }
 
-/* Utility: full width button */
 .w-full {
     width: 100%;
 }
