@@ -19,11 +19,19 @@
 
         <div class="dashboard-header">
             <h1>DDM Dashboard</h1>
-            <button id="logout-btn" class="btn btn-secondary logout-btn">Logout</button>
+            <div class="header-controls">
+                <div id="view-toggle" class="view-toggle">
+                    <button data-view="grid" class="view-btn" title="Grid view">▦</button>
+                    <button data-view="list" class="view-btn active" title="List view">☰</button>
+                    <button data-view="category" class="view-btn" title="Category view">⊞</button>
+                </div>
+                <button id="logout-btn" class="btn btn-secondary logout-btn">Logout</button>
+            </div>
         </div>
 
         <div class="container">
             <div id="announcements-container" class="announcements-section"></div>
+            <div id="search-container" class="search-section"></div>
             <div id="file-list-container" class="file-list-section"></div>
         </div>
     </div>
