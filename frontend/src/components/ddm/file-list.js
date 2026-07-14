@@ -3,32 +3,42 @@ import * as FileService from "../../services/ddm/file-service.js";
 import { fileCard } from "./file-card.js";
 import { showToast } from "../ui/toast.js";
 import { uiStore } from "../../stores/ui-store.js";
+import { downloadFilesAsZip } from "../../services/ddm/file-service.js";
 
 export class FileList {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.files = [];
+    this.selected = new Set();
+    this._bulkToolbar = null;
     this.load();
     uiStore.onViewChange((view) => this.render(view));
+    uiStore.onFilterChange(() => this.render(uiStore.viewMode));
     this._setupDelegation();
   }
 
   async load() {
     try {
-      const raw = await FileService.fetchUserFiles();
+      let raw = await FileService.fetchUserFiles();
+      if (uiStore.groupFilter) {
+        raw = raw.filter(file => {
+          const groups = Array.isArray(file.groups) ? file.groups : [];
+          return groups.some(g => g.id == uiStore.groupFilter || g.name === uiStore.groupFilter);
+        });
+      }
       this.files = Array.isArray(raw) ? raw : [];
     } catch (e) {
-      try {
-        showToast(e.message || "Failed to load files", "error");
-      } catch (_) {}
+      try { showToast(e.message || "Failed to load files", "error"); } catch (_) {}
       this.files = null;
       console.error("File fetch error:", e);
     }
+    this.selected.clear();
     this.render(uiStore.viewMode);
   }
 
   setFiles(files) {
     this.files = Array.isArray(files) ? files : [];
+    this.selected.clear();
     this.render(uiStore.viewMode);
   }
 
@@ -60,6 +70,8 @@ export class FileList {
         break;
     }
     this._initVideoHovers();
+    this._syncCheckboxes();
+    this._updateBulkToolbar();
   }
 
   renderCategoryView() {
@@ -121,28 +133,93 @@ export class FileList {
   _setupDelegation() {
     this.container.addEventListener('click', (e) => {
       const btn = e.target.closest('button');
-      if (!btn) return;
-      const fileId = btn.dataset.fileId;
-      if (btn.classList.contains('btn-preview')) {
-        e.preventDefault();
-        if (window.filePreviewPanel) {
-          const file = this.files.find(f => f.id == fileId);
-          if (file) window.filePreviewPanel.open(file);
-        }
-      } else if (btn.classList.contains('btn-ask-ai')) {
-        e.preventDefault();
-        const file = this.files.find(f => f.id == fileId);
-        if (file && window.aiChatPanel) {
-          window.aiChatPanel.setFileContext(file);
-          // Open chat if hidden
-          const panel = document.getElementById("ai-chat-panel");
-          const toggle = document.getElementById("ai-chat-toggle");
-          if (panel && panel.classList.contains("hidden") && toggle) {
-            toggle.click();
+      if (btn) {
+        const fileId = btn.dataset.fileId;
+        if (btn.classList.contains('btn-preview')) {
+          e.preventDefault();
+          if (window.filePreviewPanel) {
+            const file = this.files.find(f => f.id == fileId);
+            if (file) window.filePreviewPanel.open(file);
           }
+          return;
+        }
+        if (btn.classList.contains('btn-ask-ai')) {
+          e.preventDefault();
+          const file = this.files.find(f => f.id == fileId);
+          if (file && window.aiChatPanel) {
+            window.aiChatPanel.setFileContext(file);
+            const panel = document.getElementById("ai-chat-panel");
+            const toggle = document.getElementById("ai-chat-toggle");
+            if (panel && panel.classList.contains("hidden") && toggle) toggle.click();
+          }
+          return;
         }
       }
+      // Handle checkbox clicks
+      if (e.target.classList.contains('select-checkbox')) {
+        const fileId = e.target.dataset.fileId;
+        if (e.target.checked) {
+          this.selected.add(fileId);
+        } else {
+          this.selected.delete(fileId);
+        }
+        this._updateCardSelection(fileId);
+        this._updateBulkToolbar();
+      }
     });
+  }
+
+  _syncCheckboxes() {
+    this.container.querySelectorAll('.select-checkbox').forEach(cb => {
+      const id = cb.dataset.fileId;
+      cb.checked = this.selected.has(id);
+    });
+    this.container.querySelectorAll('.file-card').forEach(card => {
+      const id = card.dataset.fileId;
+      card.classList.toggle('selected', this.selected.has(id));
+    });
+  }
+
+  _updateCardSelection(fileId) {
+    const card = this.container.querySelector(`.file-card[data-file-id="${fileId}"]`);
+    if (card) {
+      card.classList.toggle('selected', this.selected.has(fileId));
+    }
+  }
+
+  _updateBulkToolbar() {
+    if (this.selected.size > 0) {
+      if (!this._bulkToolbar) {
+        this._bulkToolbar = document.createElement("div");
+        this._bulkToolbar.className = "bulk-toolbar";
+        this._bulkToolbar.innerHTML = `
+          <span class="selected-count"></span>
+          <button class="btn btn-primary btn-sm" id="download-zip-btn">Download ZIP</button>
+          <button class="btn btn-secondary btn-sm" id="deselect-all-btn">Deselect All</button>
+        `;
+        document.body.appendChild(this._bulkToolbar);
+        document.getElementById("download-zip-btn").addEventListener("click", () => this._downloadSelectedZip());
+        document.getElementById("deselect-all-btn").addEventListener("click", () => {
+          this.selected.clear();
+          this._syncCheckboxes();
+          this._updateBulkToolbar();
+        });
+      }
+      this._bulkToolbar.querySelector(".selected-count").textContent = `${this.selected.size} selected`;
+      this._bulkToolbar.style.display = "flex";
+    } else if (this._bulkToolbar) {
+      this._bulkToolbar.style.display = "none";
+    }
+  }
+
+  async _downloadSelectedZip() {
+    const ids = Array.from(this.selected);
+    try {
+      await downloadFilesAsZip(ids);
+      showToast("ZIP download started", "success");
+    } catch (err) {
+      showToast("Failed to create ZIP: " + err.message, "error");
+    }
   }
 }
 // end of RCA/frontend/src/components/ddm/file-list.js

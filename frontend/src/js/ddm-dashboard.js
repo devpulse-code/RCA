@@ -1,5 +1,5 @@
 // RCA/frontend/src/js/ddm-dashboard.js
-console.log("✅ Dashboard v2.1.0 (drag-drop, preview, AI per file) loaded");
+console.log("✅ Dashboard v2.2.0 (bulk actions, filter, tracker, notifications) loaded");
 
 function showError(msg) {
     const banner = document.getElementById("error-banner");
@@ -50,7 +50,6 @@ function initDropZone() {
     const container = document.getElementById("file-list-container");
     if (!container) return;
 
-    // Insert drop zone before file list
     const dropZone = document.createElement("div");
     dropZone.id = "drop-zone";
     dropZone.innerHTML = `
@@ -66,10 +65,7 @@ function initDropZone() {
     const progressContainer = dropZone.querySelector(".upload-progress");
     const progressBar = progressContainer.querySelector(".upload-progress-bar");
 
-    // Click to open file dialog
     dropZone.addEventListener("click", () => fileInput.click());
-
-    // Drag events
     dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
         dropZone.classList.add("drag-over");
@@ -81,7 +77,6 @@ function initDropZone() {
         const files = e.dataTransfer.files;
         handleFiles(files);
     });
-
     fileInput.addEventListener("change", () => {
         handleFiles(fileInput.files);
         fileInput.value = "";
@@ -89,23 +84,19 @@ function initDropZone() {
 
     async function handleFiles(fileList) {
         if (!fileList.length) return;
-        // We'll upload one by one for progress visibility
         for (const file of fileList) {
             progressContainer.classList.remove("hidden");
             progressBar.style.width = "0%";
             try {
                 const formData = new FormData();
                 formData.append("file", file);
-                // Provide a default name and description; user can edit via request queue
                 formData.append("name", file.name);
                 formData.append("description", "");
-
                 const { uploadFileWithProgress } = await import("../services/ddm/file-service.js");
                 await uploadFileWithProgress(formData, (percent) => {
                     progressBar.style.width = percent + "%";
                 });
                 progressBar.style.width = "100%";
-                // Refresh file list
                 document.dispatchEvent(new Event('refresh-files'));
             } catch (err) {
                 import("../components/ui/toast.js").then(({ showToast }) => {
@@ -125,10 +116,9 @@ function initDropZone() {
     const authenticated = await verifySession();
     if (!authenticated) return;
 
-    // Initialize drop zone
     initDropZone();
 
-    // Load Announcement Panel
+    // Announcement Panel
     try {
         const { default: AnnouncementPanel } = await import("../components/ddm/announcement-panel.js");
         new AnnouncementPanel("announcements-container");
@@ -136,17 +126,33 @@ function initDropZone() {
         console.warn("Announcements panel not available:", err);
     }
 
-    // Load Search Bar
+    // Upload Request Tracker
+    try {
+        const { default: UploadTracker } = await import("../components/ddm/upload-tracker.js");
+        new UploadTracker("upload-tracker-container");
+    } catch (err) {
+        console.warn("Upload tracker not available:", err);
+    }
+
+    // Group Filter
+    try {
+        const { default: GroupFilter } = await import("../components/ddm/group-filter.js");
+        window.groupFilter = new GroupFilter("group-filter-container");
+    } catch (err) {
+        console.warn("Group filter not available:", err);
+    }
+
+    // Search Bar
     try {
         const { default: SearchBar } = await import("../components/ddm/search-bar.js");
-        const searchBar = new SearchBar("search-container", (results) => {
+        new SearchBar("search-container", (results) => {
             document.dispatchEvent(new CustomEvent('search-results', { detail: results }));
         });
     } catch (err) {
         console.error("Search bar failed to load:", err);
     }
 
-    // Load File List with view mode support
+    // File List
     let fileList;
     try {
         const { FileList } = await import("../components/ddm/file-list.js");
@@ -155,7 +161,7 @@ function initDropZone() {
             fileList.setFiles(e.detail.results || []);
         });
         document.addEventListener('refresh-files', () => {
-            fileList.load(); // reload from server
+            fileList.load();
         });
     } catch (err) {
         document.getElementById("file-list-container").innerHTML =
@@ -163,20 +169,28 @@ function initDropZone() {
         console.error(err);
     }
 
-    // Load AI Chat Panel (floating button)
+    // AI Chat Panel
     try {
         const { default: AiChatPanel } = await import("../components/ddm/ai-chat-panel.js");
-        window.aiChatPanel = new AiChatPanel(); // make accessible for file cards
+        window.aiChatPanel = new AiChatPanel();
     } catch (err) {
         console.warn("AI Chat panel not available:", err);
     }
 
-    // Load File Preview Panel
+    // File Preview Panel
     try {
         const { default: FilePreviewPanel } = await import("../components/ddm/file-preview-panel.js");
         window.filePreviewPanel = new FilePreviewPanel();
     } catch (err) {
         console.warn("File preview panel not available:", err);
+    }
+
+    // Notification Panel
+    try {
+        const { default: NotificationPanel } = await import("../components/ddm/notification-panel.js");
+        new NotificationPanel("notification-bell-container");
+    } catch (err) {
+        console.warn("Notification panel not available:", err);
     }
 })();
 // end of RCA/frontend/src/js/ddm-dashboard.js

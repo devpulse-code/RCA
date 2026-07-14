@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/tailwind.min.css">
     <link rel="stylesheet" href="/css/ddm-dashboard.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div id="page-transition-wrapper">
@@ -20,6 +21,7 @@
         <div class="dashboard-header">
             <h1>DDM Dashboard</h1>
             <div class="header-controls">
+                <div id="notification-bell-container"></div>
                 <div id="view-toggle" class="view-toggle">
                     <button data-view="grid" class="view-btn" title="Grid view">▦</button>
                     <button data-view="list" class="view-btn active" title="List view">☰</button>
@@ -31,6 +33,8 @@
 
         <div class="container">
             <div id="announcements-container" class="announcements-section"></div>
+            <div id="upload-tracker-container" class="upload-tracker-section"></div>
+            <div id="group-filter-container" class="filter-section"></div>
             <div id="search-container" class="search-section"></div>
             <div id="file-list-container" class="file-list-section"></div>
         </div>

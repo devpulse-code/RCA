@@ -30,6 +30,7 @@ export function fileCard(file) {
 
   return `
     <div class="file-card bg-[var(--bg-secondary)] rounded shadow overflow-hidden" data-file-id="${file.id}">
+      <input type="checkbox" class="select-checkbox" data-file-id="${file.id}" />
       ${mediaBlock}
       <div class="p-3">
         <h3 class="font-semibold text-[var(--text-primary)] truncate" title="${file.name}">${file.name}</h3>

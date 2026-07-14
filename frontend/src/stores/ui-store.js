@@ -1,7 +1,9 @@
 // RCA/frontend/src/stores/ui-store.js
 export const uiStore = {
-  viewMode: 'list', // 'grid', 'list', 'category'
+  viewMode: 'list',
+  groupFilter: null, // group id or name to filter by
   listeners: [],
+  filterListeners: [],
 
   setViewMode(mode) {
     if (['grid', 'list', 'category'].includes(mode)) {
@@ -10,8 +12,17 @@ export const uiStore = {
     }
   },
 
+  setGroupFilter(groupId) {
+    this.groupFilter = groupId;
+    this.filterListeners.forEach(cb => cb(this.groupFilter));
+  },
+
   onViewChange(callback) {
     this.listeners.push(callback);
+  },
+
+  onFilterChange(callback) {
+    this.filterListeners.push(callback);
   },
 
   notify() {

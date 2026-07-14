@@ -24,12 +24,6 @@ export async function submitUploadRequest(formData) {
   return await apiUpload("/ddm/files/request", formData);
 }
 
-/**
- * Upload file with progress callback.
- * @param {FormData} formData - must contain 'file' and optional 'name', 'description', 'group_ids'
- * @param {function} onProgress - callback(percentComplete: number)
- * @returns {Promise<object>} - response data
- */
 export function uploadFileWithProgress(formData, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -45,17 +39,10 @@ export function uploadFileWithProgress(formData, onProgress) {
 
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText));
-        } catch {
-          resolve(xhr.responseText);
-        }
+        try { resolve(JSON.parse(xhr.responseText)); } catch { resolve(xhr.responseText); }
       } else {
         let detail = 'Upload failed';
-        try {
-          const err = JSON.parse(xhr.responseText);
-          detail = err.detail || detail;
-        } catch {}
+        try { const err = JSON.parse(xhr.responseText); detail = err.detail || detail; } catch {}
         reject(new Error(detail));
       }
     });
@@ -67,7 +54,53 @@ export function uploadFileWithProgress(formData, onProgress) {
   });
 }
 
-// Admin operations (unchanged)
+// ---------- Upload Request Tracking ----------
+export async function fetchUserUploadRequests() {
+  return await apiClient.get("/ddm/files/requests");
+}
+
+// ---------- Bulk ZIP Download ----------
+export async function downloadFilesAsZip(fileIds) {
+  // Dynamically load JSZip if not already loaded
+  if (typeof JSZip === 'undefined') {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Failed to load JSZip'));
+      document.head.appendChild(script);
+    });
+  }
+
+  const zip = new JSZip();
+  const promises = fileIds.map(async (id) => {
+    const response = await fetch(`/api/ddm/files/${id}/download`, { credentials: 'include' });
+    if (!response.ok) throw new Error(`Failed to fetch file ${id}`);
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `file-${id}`;
+    if (disposition) {
+      const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (match && match[1]) {
+        filename = match[1].replace(/['"]/g, '');
+      }
+    }
+    zip.file(filename, blob);
+  });
+
+  await Promise.all(promises);
+  const content = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'files.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Admin operations
 export async function fetchFiles() {
   return await apiClient.get("/ddm/admin/");
 }
