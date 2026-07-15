@@ -45,13 +45,17 @@ router.include_router(list_router)
 from backend.src.modules.ddm.api.search.search import router as search_router
 router.include_router(search_router)
 
-# Announcements (user side, requires login) – NOW MOUNTED AT /ddm/announcements/
+# Announcements (user side, requires login)
 from backend.src.modules.ddm.api.announcements.announcements import router as user_announcements_router
 router.include_router(user_announcements_router, prefix="/announcements")
 
 # AI
 from backend.src.modules.ddm.api.ai.chat import router as ai_router
 router.include_router(ai_router, prefix="/ai")
+
+# Notifications
+from backend.src.modules.ddm.api.notifications import router as notifications_router
+router.include_router(notifications_router)
 
 # NOTE: public endpoints are now mounted in the top-level API router,
 # so they are accessible at /api/public/stats and /api/public/announcements.

@@ -1,5 +1,5 @@
 // RCA/frontend/src/js/ddm-dashboard.js
-console.log("✅ Dashboard v2.2.0 (bulk actions, filter, tracker, notifications) loaded");
+console.log("✅ Dashboard v3.0 (Exact Design Matching) loaded");
 
 function showError(msg) {
     const banner = document.getElementById("error-banner");
@@ -18,128 +18,25 @@ async function verifySession() {
                 return true;
             }
         }
-        navigateTo('/pages/ddm/login.html');
+        window.location.href = '/pages/ddm/login.html';
         return false;
     } catch (e) {
         showError('Backend unreachable – redirecting to login');
-        setTimeout(() => { navigateTo('/pages/ddm/login.html'); }, 2000);
+        setTimeout(() => { window.location.href = '/pages/ddm/login.html'; }, 2000);
         return false;
     }
 }
 
-document.getElementById("logout-btn").addEventListener("click", () => {
-    document.cookie = "user_session=; Max-Age=0; path=/";
-    navigateTo("/pages/ddm/login.html");
-});
-
-// View toggle handler
-const viewBtns = document.querySelectorAll('.view-btn');
-viewBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        viewBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const view = btn.dataset.view;
-        import("../stores/ui-store.js").then(({ uiStore }) => {
-            uiStore.setViewMode(view);
-        });
-    });
-});
-
-// ---------- Drag & Drop Upload Initialization ----------
-function initDropZone() {
-    const container = document.getElementById("file-list-container");
-    if (!container) return;
-
-    const dropZone = document.createElement("div");
-    dropZone.id = "drop-zone";
-    dropZone.innerHTML = `
-        <p>Drag & drop files here or click to browse</p>
-        <input type="file" id="drop-file-input" multiple hidden>
-        <div class="upload-progress hidden">
-            <div class="upload-progress-bar" style="width:0%"></div>
-        </div>
-    `;
-    container.parentNode.insertBefore(dropZone, container);
-
-    const fileInput = document.getElementById("drop-file-input");
-    const progressContainer = dropZone.querySelector(".upload-progress");
-    const progressBar = progressContainer.querySelector(".upload-progress-bar");
-
-    dropZone.addEventListener("click", () => fileInput.click());
-    dropZone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropZone.classList.add("drag-over");
-    });
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
-    dropZone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropZone.classList.remove("drag-over");
-        const files = e.dataTransfer.files;
-        handleFiles(files);
-    });
-    fileInput.addEventListener("change", () => {
-        handleFiles(fileInput.files);
-        fileInput.value = "";
-    });
-
-    async function handleFiles(fileList) {
-        if (!fileList.length) return;
-        for (const file of fileList) {
-            progressContainer.classList.remove("hidden");
-            progressBar.style.width = "0%";
-            try {
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("name", file.name);
-                formData.append("description", "");
-                const { uploadFileWithProgress } = await import("../services/ddm/file-service.js");
-                await uploadFileWithProgress(formData, (percent) => {
-                    progressBar.style.width = percent + "%";
-                });
-                progressBar.style.width = "100%";
-                document.dispatchEvent(new Event('refresh-files'));
-            } catch (err) {
-                import("../components/ui/toast.js").then(({ showToast }) => {
-                    showToast("Upload failed: " + (err.message || "unknown"), "error");
-                });
-            } finally {
-                setTimeout(() => {
-                    progressContainer.classList.add("hidden");
-                    progressBar.style.width = "0%";
-                }, 1500);
-            }
-        }
-    }
-}
-
-(async function init() {
+async function init() {
     const authenticated = await verifySession();
     if (!authenticated) return;
 
-    initDropZone();
-
-    // Announcement Panel
+    // Upload Form (Right Sidebar)
     try {
-        const { default: AnnouncementPanel } = await import("../components/ddm/announcement-panel.js");
-        new AnnouncementPanel("announcements-container");
+        const { default: UploadForm } = await import("../components/ddm/upload-form.js");
+        new UploadForm("upload-container");
     } catch (err) {
-        console.warn("Announcements panel not available:", err);
-    }
-
-    // Upload Request Tracker
-    try {
-        const { default: UploadTracker } = await import("../components/ddm/upload-tracker.js");
-        new UploadTracker("upload-tracker-container");
-    } catch (err) {
-        console.warn("Upload tracker not available:", err);
-    }
-
-    // Group Filter
-    try {
-        const { default: GroupFilter } = await import("../components/ddm/group-filter.js");
-        window.groupFilter = new GroupFilter("group-filter-container");
-    } catch (err) {
-        console.warn("Group filter not available:", err);
+        console.warn("Upload form not available:", err);
     }
 
     // Search Bar
@@ -150,6 +47,14 @@ function initDropZone() {
         });
     } catch (err) {
         console.error("Search bar failed to load:", err);
+    }
+
+    // Group Filter
+    try {
+        const { default: GroupFilter } = await import("../components/ddm/group-filter.js");
+        window.groupFilter = new GroupFilter("group-filter-container");
+    } catch (err) {
+        console.warn("Group filter not available:", err);
     }
 
     // File List
@@ -164,25 +69,8 @@ function initDropZone() {
             fileList.load();
         });
     } catch (err) {
-        document.getElementById("file-list-container").innerHTML =
-            `<p class="text-red-500">Failed to load file list: ${err.message}</p>`;
+        document.getElementById("file-list-container").innerHTML = `<p class="text-red-500">Failed to load file list: ${err.message}</p>`;
         console.error(err);
-    }
-
-    // AI Chat Panel
-    try {
-        const { default: AiChatPanel } = await import("../components/ddm/ai-chat-panel.js");
-        window.aiChatPanel = new AiChatPanel();
-    } catch (err) {
-        console.warn("AI Chat panel not available:", err);
-    }
-
-    // File Preview Panel
-    try {
-        const { default: FilePreviewPanel } = await import("../components/ddm/file-preview-panel.js");
-        window.filePreviewPanel = new FilePreviewPanel();
-    } catch (err) {
-        console.warn("File preview panel not available:", err);
     }
 
     // Notification Panel
@@ -192,5 +80,33 @@ function initDropZone() {
     } catch (err) {
         console.warn("Notification panel not available:", err);
     }
-})();
+
+    // View Toggle Handler
+    const viewBtns = document.querySelectorAll('.view-btn');
+    viewBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            viewBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const view = btn.dataset.view;
+            import("../stores/ui-store.js").then(({ uiStore }) => {
+                uiStore.setViewMode(view);
+            });
+        });
+    });
+
+    // Popular Tags
+    document.querySelectorAll('.popular-tags .tag').forEach(tagBtn => {
+        tagBtn.addEventListener('click', () => {
+            const tag = tagBtn.dataset.tag;
+            const searchInput = document.getElementById("search-input");
+            if(searchInput) {
+                searchInput.value = tag;
+                // Trigger search if function is available
+                document.dispatchEvent(new CustomEvent('auto-search', { detail: { query: tag } }));
+            }
+        });
+    });
+}
+
+document.addEventListener("DOMContentLoaded", init);
 // end of RCA/frontend/src/js/ddm-dashboard.js

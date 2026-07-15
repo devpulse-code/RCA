@@ -13,7 +13,7 @@ html, body {
 
 body {
     font-family: var(--font-ui);
-    overflow: hidden;               /* no scroll on body */
+    overflow: hidden;
     position: relative;
     background: var(--bg-primary);
 }
@@ -59,7 +59,7 @@ body::before {
     border-bottom: 1px solid var(--border-color);
     backdrop-filter: blur(12px);
     flex-shrink: 0;
-    height: 60px;                   /* fixed height for header */
+    height: 60px;
 }
 
 .admin-header .btn-danger {
@@ -71,7 +71,7 @@ body::before {
 .admin-body {
     display: flex;
     flex: 1;
-    min-height: 0;                  /* important for flex children */
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -193,7 +193,7 @@ body::before {
     background: rgba(13, 94, 140, 0.05);
 }
 
-/* ---------- FORM ELEMENTS (used in audit log filters) ---------- */
+/* ---------- FORM ELEMENTS ---------- */
 .form-input,
 .form-select,
 .form-textarea {
@@ -257,14 +257,9 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: center;
-
     padding: 2rem;
-
     z-index: 99999;
-
-    background:
-        rgba(0,0,0,.45);
-
+    background: rgba(0,0,0,.45);
     backdrop-filter: blur(14px) saturate(160%);
     -webkit-backdrop-filter: blur(14px) saturate(160%);
 }
@@ -280,42 +275,29 @@ html[data-theme="dark"] #ddm-modal{
 .ddm-modal-card{
     width:min(560px,95vw);
     max-height:90vh;
-
     overflow:auto;
-
     background:var(--panel-bg);
-
     color:var(--text-primary);
-
     border:1px solid var(--border-color);
-
     border-radius:18px;
-
     padding:28px;
-
     box-shadow:
         0 25px 70px rgba(0,0,0,.35),
         0 0 40px rgba(13,94,140,.18);
-
     opacity:1;
-
     backdrop-filter:none;
-
     animation:modalPop .18s ease;
 }
 
 @keyframes modalPop{
-
     from{
         opacity:0;
         transform:translateY(10px) scale(.98);
     }
-
     to{
         opacity:1;
         transform:none;
     }
-
 }
 
 .ddm-modal-card h1,
@@ -325,100 +307,62 @@ html[data-theme="dark"] #ddm-modal{
 }
 
 .ddm-modal-card label{
-
     display:block;
-
     margin-bottom:.45rem;
-
     color:var(--text-primary);
-
     font-weight:600;
-
     letter-spacing:.04em;
-
     font-size:.82rem;
-
     text-transform:uppercase;
-
 }
 
 .ddm-modal-card input,
 .ddm-modal-card textarea,
 .ddm-modal-card select{
-
     width:100%;
-
     background:var(--input-bg);
-
     color:var(--text-primary);
-
     border:1px solid var(--input-border);
-
     border-radius:8px;
-
     padding:.75rem .9rem;
-
     font-size:.92rem;
-
     transition:.2s;
-
 }
 
 .ddm-modal-card input:focus,
 .ddm-modal-card textarea:focus,
 .ddm-modal-card select:focus{
-
     outline:none;
-
     border-color:var(--accent);
-
     box-shadow:0 0 0 4px rgba(13,94,140,.18);
-
 }
 
 .ddm-modal-card option{
-
     background:var(--panel-bg);
-
     color:var(--text-primary);
-
 }
 
 .ddm-modal-card .btn,
 .ddm-modal-card button{
-
     font-weight:600;
-
 }
 
 .modal-footer{
-
     display:flex;
-
     justify-content:flex-end;
-
     gap:.75rem;
-
     margin-top:1.5rem;
-
 }
 
 #modal-close{
-
     background:none;
-
     border:none;
-
     color:var(--text-secondary);
-
     cursor:pointer;
-
 }
 
 #modal-close:hover{
-
     color:var(--text-primary);
-
 }
 
 /* ---------- SETTINGS PANEL ---------- */

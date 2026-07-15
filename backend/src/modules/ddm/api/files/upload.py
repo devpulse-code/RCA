@@ -1,14 +1,17 @@
 # RCA/backend/src/modules/ddm/api/files/upload.py
+
 import os
 import uuid
 import shutil
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from backend.src.core.db.database import get_db
 from backend.src.config.settings import settings
 from backend.src.modules.ddm.api.deps import get_current_admin, get_current_user
 from backend.src.modules.ddm.services.file_service import create_file
 from backend.src.modules.ddm.schemas.file import FileOut, UploadRequestOut
+from backend.src.modules.ddm.models.file import File as FileModel  # aliased to avoid shadowing FastAPI's File
 from typing import List, Optional
 
 router = APIRouter()
@@ -20,13 +23,12 @@ async def admin_upload(
     name: str = Form(...),
     description: Optional[str] = Form(""),
     storage_type: str = Form(...),
-    group_ids: str = Form(""),          # comma separated
+    group_ids: str = Form(""),
     file: UploadFile = File(None),
     terabox_url: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    # Validate size limit for local files
     if storage_type == "local" and file:
         max_size = settings.ddm_admin_upload_limit_mb * 1024 * 1024
         content_length = request.headers.get("content-length")
@@ -66,7 +68,6 @@ async def user_upload_request(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    # Enforce user upload limit
     max_size = settings.ddm_user_upload_limit_mb * 1024 * 1024
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > max_size:
@@ -89,4 +90,34 @@ async def user_upload_request(
         created_at=str(file_record.created_at),
         updated_at=str(file_record.updated_at),
     )
+
+
+# ----------------------- User's upload requests list -----------------------
+@router.get("/files/requests")
+async def list_user_upload_requests(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    result = await db.execute(
+        select(FileModel)
+        .where(FileModel.uploader_id == user.id, FileModel.uploader_type == "user")
+        .order_by(FileModel.created_at.desc())
+    )
+    files = result.scalars().all()
+    return [
+        UploadRequestOut(
+            id=f.id,
+            name=f.name,
+            description=f.description,
+            mime_type=f.mime_type,
+            size=f.size,
+            status=f.status,
+            uploader_id=f.uploader_id,
+            created_at=str(f.created_at),
+            updated_at=str(f.updated_at),
+        )
+        for f in files
+    ]
+
 # end of RCA/backend/src/modules/ddm/api/files/upload.py

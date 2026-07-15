@@ -206,7 +206,6 @@ h3 {
 }
 
 /* ── Theme Toggle Button (global placement) ──────────── */
-/* Auto‑created button (top‑left, fixed) */
 .theme-toggle-btn {
   position: fixed;
   top: 1rem;
@@ -233,7 +232,6 @@ h3 {
   transform: scale(1.05);
 }
 
-/* SVG inside toggle */
 .theme-toggle-btn svg {
   width: 20px;
   height: 20px;
@@ -246,7 +244,7 @@ h3 {
   margin-right: 1rem;
 }
 
-/* ── Themed Utility Classes (replace Tailwind colors) ── */
+/* ── Themed Utility Classes ─────────────────────────── */
 .text-primary { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
 .text-muted { color: var(--text-muted); }
@@ -266,7 +264,6 @@ h3 {
 .border-themed { border-color: var(--border-color); }
 .border-input { border-color: var(--input-border); }
 
-/* Simple spacing, rounding helpers */
 .rounded-sm { border-radius: 4px; }
 .rounded { border-radius: 6px; }
 .rounded-lg { border-radius: 10px; }
@@ -307,40 +304,5 @@ h3 {
 .modal-enter.modal-exit {
   opacity: 0;
   transform: scale(0.95) translateY(-10px);
-}
-.theme-toggle-btn {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1000;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow);
-  transition: all 0.25s ease;
-}
-.theme-toggle-btn:hover {
-  color: var(--accent);
-  box-shadow: 0 0 16px rgba(13,94,140,0.3);
-  transform: scale(1.05);
-}
-.theme-toggle-btn svg {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.3s;
-}
-
-/* When used inside a page header (admin/login), override fixed positioning */
-.header-theme-toggle {
-  position: static;
-  margin-right: 1rem;
 }
 /* end of RCA/frontend/src/css/global.css */

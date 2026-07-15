@@ -7,7 +7,7 @@ from .file import File                  # ← enabled
 from .announcement import Announcement  # ← enabled
 from .audit_log import AuditLog
 from .system_setting import SystemSetting
-
+from .notification import Notification
 __all__ = [
     "TimestampMixin",
     "User",
@@ -17,5 +17,6 @@ __all__ = [
     "Announcement",
     "AuditLog",
     "SystemSetting",
+    "Notification"
 ]
-# end of RCA/backend/src/modules/ddm/models/__init__.py
+# end of RCA/backend/src/modules/ddm/models/__init__.pyfrom .notification import Notification

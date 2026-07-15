@@ -4,39 +4,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDM – Dashboard</title>
+    <title>DDM Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@400;500&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/tailwind.min.css">
     <link rel="stylesheet" href="/css/ddm-dashboard.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div id="page-transition-wrapper">
         <div id="toast-container"></div>
         <div id="error-banner" class="error-banner"></div>
 
-        <div class="dashboard-header">
-            <h1>DDM Dashboard</h1>
-            <div class="header-controls">
-                <div id="notification-bell-container"></div>
-                <div id="view-toggle" class="view-toggle">
-                    <button data-view="grid" class="view-btn" title="Grid view">▦</button>
-                    <button data-view="list" class="view-btn active" title="List view">☰</button>
-                    <button data-view="category" class="view-btn" title="Category view">⊞</button>
-                </div>
-                <button id="logout-btn" class="btn btn-secondary logout-btn">Logout</button>
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="logo">
+                <span>DM</span> Dashboard
             </div>
-        </div>
+            <div class="nav-links">
+                <a href="#" class="active">Dashboard</a>
+                <a href="#">My Requests</a>
+                <a href="#">Help</a>
+            </div>
+            <div class="nav-right">
+                <div id="notification-bell-container" class="nav-icon-wrapper"></div>
+                <i class="fa-regular fa-moon icon"></i>
+                <div class="profile">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="User">
+                    <span id="display-name" class="profile-name">User</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+            </div>
+        </nav>
 
+        <!-- Container -->
         <div class="container">
-            <div id="announcements-container" class="announcements-section"></div>
-            <div id="upload-tracker-container" class="upload-tracker-section"></div>
-            <div id="group-filter-container" class="filter-section"></div>
-            <div id="search-container" class="search-section"></div>
-            <div id="file-list-container" class="file-list-section"></div>
+            <!-- Main Hero Area -->
+            <div class="main-hero">
+                <div class="hero-left">
+                    <h1 class="welcome-title">Welcome back, <span id="welcome-name">User</span> 👋</h1>
+                    <p class="welcome-subtitle">Search, upload, and manage your digital materials all in one place.</p>
+                    
+                    <div id="search-container"></div>
+                    
+                    <div class="popular-tags">
+                        <span>Popular:</span>
+                        <button class="tag" data-tag="reports">Reports</button>
+                        <button class="tag" data-tag="videos">Videos</button>
+                        <button class="tag" data-tag="images">Images</button>
+                        <button class="tag" data-tag="presentations">Presentations</button>
+                    </div>
+                </div>
+
+                <div class="hero-right">
+                    <div id="upload-container"></div>
+                </div>
+            </div>
+
+            <!-- File Library -->
+            <div class="library-header">
+                <h2 class="library-title">File Library</h2>
+                <div class="filters">
+                    <button class="filter-btn active">All Files</button>
+                    <div id="group-filter-container" style="display:inline-block;"></div>
+                    <button class="filter-btn">All Types <i class="fa-solid fa-chevron-down"></i></button>
+                    <button class="filter-btn">All Time <i class="fa-solid fa-chevron-down"></i></button>
+                    
+                    <div class="sort-views">
+                        <div class="sort-select">
+                            Sort by: Newest <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="view-icons">
+                            <button class="view-btn active" data-view="grid"><i class="fa-solid fa-grid-2"></i></button>
+                            <button class="view-btn" data-view="list"><i class="fa-solid fa-bars"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="file-list-container"></div>
+
+            <!-- Load More -->
+            <div class="load-more-container">
+                <button id="load-more-btn" class="load-more-btn">Load more <i class="fa-solid fa-chevron-down"></i></button>
+            </div>
         </div>
     </div>
 
