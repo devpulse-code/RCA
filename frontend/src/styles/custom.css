@@ -1,0 +1,24 @@
+/* RCA/frontend/src/styles/custom.css */
+
+.theme-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  color: var(--text-primary);
+  transition: background 0.3s;
+}
+.theme-toggle-btn:hover {
+  background: var(--bg-tertiary);
+}
+/* end of RCA/frontend/src/styles/custom.css */

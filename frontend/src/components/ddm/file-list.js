@@ -11,6 +11,7 @@ export class FileList {
     this.load();
     uiStore.onViewChange((view) => this.render(view));
     uiStore.onFilterChange(() => this.render(uiStore.viewMode));
+    uiStore.onTypeChange(() => this.render(uiStore.viewMode));
     this._setupDelegation();
   }
 
@@ -37,31 +38,47 @@ export class FileList {
     this.render(uiStore.viewMode);
   }
 
+  _filterByType(files) {
+    const type = uiStore.typeFilter;
+    if (!type || type === 'all') return files;
+    return files.filter(file => {
+      const ext = (file.name || '').split('.').pop().toLowerCase();
+      if (type === 'image') return ['jpg','jpeg','png','gif','bmp','webp','svg'].includes(ext);
+      if (type === 'video') return ['mp4','webm','mov','avi'].includes(ext);
+      if (type === 'doc') return ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt'].includes(ext);
+      return true;
+    });
+  }
+
   render(viewMode = uiStore.viewMode) {
     if (!this.container) return;
     if (this.files === null) {
       this.container.innerHTML = `<p class="text-red-400">Could not load files. Please refresh.</p>`;
       return;
     }
-    if (this.files.length === 0) {
-      this.container.innerHTML = `<p class="text-gray-400">No files available.</p>`;
+    const filtered = this._filterByType(this.files);
+    if (filtered.length === 0) {
+      this.container.innerHTML = `<p class="text-gray-400" style="color: var(--text-muted);">No files available.</p>`;
       return;
     }
 
+    const cardsHTML = filtered.map(file => fileCard(file, viewMode)).join('');
+
     if (viewMode === 'grid') {
-      this.container.innerHTML = `<div class="file-grid">${this.files.map(fileCard).join('')}</div>`;
-    } else if (viewMode === 'list') {
-      this.container.innerHTML = `<div class="space-y-4">${this.files.map(fileCard).join('')}</div>`;
+      this.container.innerHTML = `<div class="file-grid">${cardsHTML}</div>`;
     } else {
-      this.container.innerHTML = `<div class="file-grid">${this.files.map(fileCard).join('')}</div>`;
+      this.container.innerHTML = `<div class="file-list-view">${cardsHTML}</div>`;
     }
+
     this._initVideoHovers();
+    this._initListVideoHovers();
   }
 
   _initVideoHovers() {
+    // Grid video hover preview
     const wrappers = this.container.querySelectorAll('.file-image');
     wrappers.forEach(wrapper => {
-      const video = wrapper.querySelector('video'); // Not implemented yet in card, but future-proof
+      const video = wrapper.querySelector('video');
       if (!video) return;
       let playTimeout, resetTimeout;
       const startPreview = () => {
@@ -72,6 +89,16 @@ export class FileList {
             video.pause();
             video.currentTime = 0;
           }, 5000);
+        } else {
+          video.load();
+          video.addEventListener('loadeddata', () => {
+            video.currentTime = 0;
+            video.play().catch(() => {});
+            resetTimeout = setTimeout(() => {
+              video.pause();
+              video.currentTime = 0;
+            }, 5000);
+          }, { once: true });
         }
       };
       const stopPreview = () => {
@@ -87,6 +114,55 @@ export class FileList {
     });
   }
 
+  _initListVideoHovers() {
+    // List view video hover on thumbnail
+    const thumbs = this.container.querySelectorAll('.file-list-thumb');
+    thumbs.forEach(thumb => {
+      const video = thumb.querySelector('video');
+      if (!video) return;
+      const playOverlay = thumb.querySelector('.play-overlay');
+      let playTimeout, resetTimeout;
+      const startPreview = () => {
+        if (playOverlay) playOverlay.style.display = 'none';
+        video.style.display = 'block';
+        if (video.readyState >= 2) {
+          video.currentTime = 0;
+          video.play().catch(() => {});
+          resetTimeout = setTimeout(() => {
+            video.pause();
+            video.currentTime = 0;
+            video.style.display = 'none';
+            if (playOverlay) playOverlay.style.display = 'flex';
+          }, 5000);
+        } else {
+          video.load();
+          video.addEventListener('loadeddata', () => {
+            video.currentTime = 0;
+            video.play().catch(() => {});
+            resetTimeout = setTimeout(() => {
+              video.pause();
+              video.currentTime = 0;
+              video.style.display = 'none';
+              if (playOverlay) playOverlay.style.display = 'flex';
+            }, 5000);
+          }, { once: true });
+        }
+      };
+      const stopPreview = () => {
+        clearTimeout(playTimeout);
+        clearTimeout(resetTimeout);
+        video.pause();
+        video.currentTime = 0;
+        video.style.display = 'none';
+        if (playOverlay) playOverlay.style.display = 'flex';
+      };
+      thumb.addEventListener('mouseenter', () => {
+        playTimeout = setTimeout(startPreview, 300);
+      });
+      thumb.addEventListener('mouseleave', stopPreview);
+    });
+  }
+
   _setupDelegation() {
     this.container.addEventListener('click', (e) => {
         const target = e.target.closest('button') || e.target.closest('.kebab-menu');
@@ -96,22 +172,15 @@ export class FileList {
         const file = this.files.find(f => f.id == fileId);
         if (!file) return;
 
-        // Dropdown menu toggle
         if (target.classList.contains('kebab-menu') || target.tagName === 'I' && target.parentElement.classList.contains('kebab-menu')) {
             const dropdown = this.container.querySelector(`.file-actions-dropdown[data-file-id="${fileId}"]`);
-            // Close all other dropdowns
             this.container.querySelectorAll('.file-actions-dropdown').forEach(d => d.classList.remove('open'));
-            if (dropdown) {
-                dropdown.classList.toggle('open');
-            }
+            if (dropdown) dropdown.classList.toggle('open');
             return;
         }
 
-        // Action inside dropdown
         if (target.classList.contains('action-preview')) {
-            if (window.filePreviewPanel) {
-                window.filePreviewPanel.open(file);
-            }
+            if (window.filePreviewPanel) window.filePreviewPanel.open(file);
         } else if (target.classList.contains('action-download')) {
             window.open(`/api/ddm/files/${fileId}/download`, '_blank');
         } else if (target.classList.contains('action-ai')) {
@@ -124,7 +193,6 @@ export class FileList {
         }
     });
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.kebab-menu') && !e.target.closest('.file-actions-dropdown')) {
             this.container.querySelectorAll('.file-actions-dropdown').forEach(d => d.classList.remove('open'));

@@ -10,15 +10,25 @@ function showError(msg) {
     }
 }
 
+function getTimeGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+}
+
 async function verifySession() {
     try {
         const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
         if (res.ok) {
             const data = await res.json();
+            console.log("Session data:", data);   // <-- for debugging name
             if (data.user_id || data.role === 'user') {
-                userName = data.name || "User";
+                // fallback chain: try common name fields
+                userName = data.name || data.display_name || data.username || "User";
                 document.getElementById("welcome-name").textContent = userName;
                 document.getElementById("display-name").textContent = userName;
+                document.getElementById("greeting-prefix").textContent = getTimeGreeting();
                 return true;
             }
         }
@@ -63,7 +73,7 @@ async function init() {
     const authenticated = await verifySession();
     if (!authenticated) return;
 
-    // Upload Form (right column of hero)
+    // Upload Form (drag & drop already included)
     try {
         const { default: UploadForm } = await import("../components/ddm/upload-form.js");
         new UploadForm("upload-container");
@@ -106,7 +116,7 @@ async function init() {
         console.error(err);
     }
 
-    // Notification Panel (includes announcements)
+    // Notification Panel (correct badge logic in separate file)
     try {
         const { default: NotificationPanel } = await import("../components/ddm/notification-panel.js");
         new NotificationPanel("notification-bell-container");
@@ -122,7 +132,7 @@ async function init() {
         console.warn("AI chat panel not available:", err);
     }
 
-    // View Toggle Handler
+    // View Toggle
     const viewBtns = document.querySelectorAll('.view-btn');
     viewBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -135,7 +145,20 @@ async function init() {
         });
     });
 
-    // Profile dropdown logic
+    // File type filter
+    const typeBtns = document.querySelectorAll('#file-type-filter .type-btn');
+    typeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            typeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const type = btn.dataset.type;
+            import("../stores/ui-store.js").then(({ uiStore }) => {
+                uiStore.setTypeFilter(type);
+            });
+        });
+    });
+
+    // Profile dropdown
     const profileTrigger = document.getElementById("profile-trigger");
     const profileDropdown = document.getElementById("profile-dropdown");
     profileTrigger.addEventListener("click", () => {
@@ -147,7 +170,6 @@ async function init() {
         profileDropdown.classList.add("hidden");
     });
 
-    // Dark/light theme toggle via hidden button
     document.getElementById("menu-theme-toggle").addEventListener("click", () => {
         const themeToggleBtn = document.getElementById("theme-toggle");
         if (themeToggleBtn) themeToggleBtn.click();
@@ -165,7 +187,6 @@ async function init() {
         }
     });
 
-    // Default view
     toggleView("files");
 }
 
