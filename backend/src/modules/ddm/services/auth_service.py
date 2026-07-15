@@ -15,7 +15,6 @@ async def authenticate_passcode(db: AsyncSession, passcode: str) -> tuple[User, 
     user = await get_user_by_passcode(db, passcode)
     if not user:
         raise AuthenticationError("Invalid passcode")
-    # Collect group IDs (as strings)
     group_ids = [str(g.id) for g in user.groups]
     session_id = await create_session(
         user_id=str(user.id),
@@ -23,5 +22,4 @@ async def authenticate_passcode(db: AsyncSession, passcode: str) -> tuple[User, 
         is_admin=False
     )
     return user, session_id
-
 # end of D:\Development\Website\rca-platform\backend\src\modules\ddm\services\auth_service.py

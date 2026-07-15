@@ -1,7 +1,7 @@
 // RCA/frontend/src/stores/ui-store.js
 export const uiStore = {
   viewMode: 'list',
-  groupFilter: null, // group id or name to filter by
+  groupFilter: null,
   listeners: [],
   filterListeners: [],
 

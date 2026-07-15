@@ -31,15 +31,12 @@ async def search(
         per_page=per_page,
     )
 
-    # Format results to match FileOut-like structure (id, name, description, groups)
     results = []
     for hit in hits:
         results.append({
             "id": hit["id"],
             "name": hit.get("name", ""),
             "description": hit.get("description", ""),
-            # For groups we could fetch from DB if needed, but we stored group_ids only.
-            # The spec doesn't require group names in search results; we can return group_ids.
             "group_ids": hit.get("group_ids", []),
             "content_preview": hit.get("content", "")[:200] if content else "",
         })

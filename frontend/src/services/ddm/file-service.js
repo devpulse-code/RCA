@@ -54,12 +54,10 @@ export function uploadFileWithProgress(formData, onProgress) {
   });
 }
 
-// ---------- Upload Request Tracking ----------
 export async function fetchUserUploadRequests() {
   return await apiClient.get("/ddm/files/requests");
 }
 
-// ---------- Bulk ZIP Download (Optional based on future needs) ----------
 export async function downloadFilesAsZip(fileIds) {
   if (typeof JSZip === 'undefined') {
     await new Promise((resolve, reject) => {

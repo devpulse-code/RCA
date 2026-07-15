@@ -1,5 +1,5 @@
 # RCA/backend/src/modules/ddm/api/files/download.py
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -23,24 +23,20 @@ def get_filename_with_extension(file_record: File) -> str:
     For terabox files, guesses an extension from the MIME type if name has none.
     """
     name = file_record.name
-    # If name already has an extension, keep it as is
     if '.' in os.path.basename(name):
         return name
 
-    # For local files, use the extension from local_path
     if file_record.storage_type.value == "local" and file_record.local_path:
         ext = os.path.splitext(file_record.local_path)[1]
         if ext:
             return f"{name}{ext}"
 
-    # Otherwise, guess extension from MIME type
     mime = file_record.mime_type
     if mime:
         guessed_ext = mimetypes.guess_extension(mime)
         if guessed_ext:
             return f"{name}{guessed_ext}"
 
-    # Fallback: append .bin if nothing else works
     return f"{name}.bin"
 
 
@@ -50,8 +46,8 @@ async def download_file(
     request: Request,
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
+    inline: bool = Query(False, description="If true, serve the file inline (for thumbnails/previews)"),
 ):
-    # Eagerly load groups to avoid MissingGreenlet error
     result = await db.execute(
         select(File).options(selectinload(File.groups)).where(File.id == file_id)
     )
@@ -64,18 +60,19 @@ async def download_file(
     if file_group_ids and not any(g in file_group_ids for g in user_group_ids):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # Log the download
     await log_audit(
         db,
         action="file_download",
         admin_username=f"user:{user.id}",
         target_type="file",
         target_id=str(file_id),
-        details={"file_name": file_record.name, "user_id": user.id},
+        details={"file_name": file_record.name, "user_id": user.id, "inline": inline},
         ip_address=request.client.host,
     )
 
     filename = get_filename_with_extension(file_record)
+    disposition_type = "inline" if inline else "attachment"
+    content_disposition = f'{disposition_type}; filename="{filename}"'
 
     if file_record.storage_type.value == "local":
         path, mime_type, _ = await stream_local_file(file_record)
@@ -83,11 +80,11 @@ async def download_file(
             with open(path, "rb") as f:
                 while chunk := f.read(64 * 1024):
                     yield chunk
-        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        headers = {"Content-Disposition": content_disposition}
         return StreamingResponse(iterfile(), media_type=mime_type, headers=headers)
     elif file_record.storage_type.value == "terabox":
         content, mime_type = await proxy_terabox(file_record)
-        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        headers = {"Content-Disposition": content_disposition}
         return StreamingResponse(iter([content]), media_type=mime_type, headers=headers)
     else:
         raise HTTPException(status_code=400, detail="Unknown storage type")

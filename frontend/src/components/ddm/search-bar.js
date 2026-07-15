@@ -49,6 +49,7 @@ export default class SearchBar {
     if (!query) return;
     try {
       const data = await searchService.search(query, sessionStore.contentSearchEnabled, page, 20);
+      // The service returns the full response object { results, total, ... }
       this.onResults(data);
     } catch (err) {
       showToast("Search failed", "error");

@@ -1,10 +1,11 @@
 // RCA/frontend/src/components/ddm/notification-panel.js
-import { fetchNotifications, markNotificationsRead } from "../../services/ddm/notification-service.js";
+import { fetchNotifications } from "../../services/ddm/notification-service.js";
 
 export default class NotificationPanel {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.notifications = [];
+    this.announcements = [];
     this.pollInterval = null;
     this.render();
     this.startPolling();
@@ -13,7 +14,7 @@ export default class NotificationPanel {
   render() {
     this.container.innerHTML = `
       <div class="notification-bell" id="notification-bell">
-        🔔
+        <i class="fa-solid fa-bell"></i>
         <span class="notification-badge hidden" id="notification-badge">0</span>
       </div>
       <div class="notification-dropdown" id="notification-dropdown"></div>
@@ -36,6 +37,16 @@ export default class NotificationPanel {
     } catch {
       this.notifications = [];
     }
+    try {
+      const res = await fetch('/api/ddm/announcements/', { credentials: 'include' });
+      if (res.ok) {
+        this.announcements = await res.json();
+      } else {
+        this.announcements = [];
+      }
+    } catch {
+      this.announcements = [];
+    }
     this.updateUI();
   }
 
@@ -48,14 +59,37 @@ export default class NotificationPanel {
     badge.textContent = unreadCount;
     badge.classList.toggle("hidden", unreadCount === 0);
 
-    dropdown.innerHTML = this.notifications.length
-      ? this.notifications.map(n => `
-        <div class="notification-item">
-          <div>${n.message}</div>
-          <div class="time">${new Date(n.created_at).toLocaleString()}</div>
-        </div>
-      `).join('')
-      : '<div class="notification-item">No notifications</div>';
+    let html = '';
+    if (this.announcements.length) {
+      html += '<div class="notification-section-title">Announcements</div>';
+      this.announcements.forEach(a => {
+        html += `
+          <div class="notification-item announcement-item-notif">
+            <strong>${a.title}</strong>
+            <p>${a.body}</p>
+            <div class="time">${new Date(a.created_at).toLocaleDateString()}</div>
+          </div>
+        `;
+      });
+    }
+
+    if (this.notifications.length) {
+      html += '<div class="notification-section-title">Notifications</div>';
+      this.notifications.forEach(n => {
+        html += `
+          <div class="notification-item">
+            <div>${n.message}</div>
+            <div class="time">${new Date(n.created_at).toLocaleString()}</div>
+          </div>
+        `;
+      });
+    }
+
+    if (!this.announcements.length && !this.notifications.length) {
+      html = '<div class="notification-item">No notifications or announcements.</div>';
+    }
+
+    dropdown.innerHTML = html;
   }
 
   startPolling() {

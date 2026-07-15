@@ -72,8 +72,6 @@ export class UploadForm {
         formData.append("group_ids", "");
 
         await FileService.uploadFileWithProgress(formData, (percent) => {
-            // Optional: could show a progress bar within the card if desired
-            // For now, just a toast notification
             if(percent === 100) {
                 showToast("Upload complete! Please wait for admin approval.", "success");
                 document.dispatchEvent(new Event('refresh-files'));

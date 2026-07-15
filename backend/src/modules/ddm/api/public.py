@@ -69,3 +69,4 @@ async def get_public_announcements(db: AsyncSession = Depends(get_db)):
             updated_at=a.updated_at,
         ))
     return out
+# end of RCA/backend/src/modules/ddm/api/public.py

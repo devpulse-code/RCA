@@ -12,7 +12,6 @@ export default class GroupFilter {
 
   async loadGroups() {
     try {
-      // We assume the user file list already contains group info; extract unique groups
       const files = await FileService.fetchUserFiles();
       const groupMap = new Map();
       files.forEach(file => {

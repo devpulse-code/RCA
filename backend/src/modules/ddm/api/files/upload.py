@@ -1,5 +1,4 @@
 # RCA/backend/src/modules/ddm/api/files/upload.py
-
 import os
 import uuid
 import shutil
@@ -11,7 +10,7 @@ from backend.src.config.settings import settings
 from backend.src.modules.ddm.api.deps import get_current_admin, get_current_user
 from backend.src.modules.ddm.services.file_service import create_file
 from backend.src.modules.ddm.schemas.file import FileOut, UploadRequestOut
-from backend.src.modules.ddm.models.file import File as FileModel  # aliased to avoid shadowing FastAPI's File
+from backend.src.modules.ddm.models.file import File as FileModel
 from typing import List, Optional
 
 router = APIRouter()

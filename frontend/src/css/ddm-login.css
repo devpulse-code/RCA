@@ -1,5 +1,4 @@
 /* RCA/frontend/src/css/ddm-login.css */
-
 * {
     margin: 0;
     padding: 0;
@@ -59,7 +58,7 @@ body::before {
     width: 100%;
     max-width: 400px;
     padding: 2rem;
-    margin-top: 3rem; /* space below top bar */
+    margin-top: 3rem;
 }
 
 .card {

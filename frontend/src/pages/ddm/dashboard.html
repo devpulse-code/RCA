@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDM Dashboard</title>
+    <title>Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,21 +20,21 @@
 
         <!-- Navbar -->
         <nav class="navbar">
-            <div class="logo">
-                <span>DM</span> Dashboard
-            </div>
-            <div class="nav-links">
-                <a href="#" class="active">Dashboard</a>
-                <a href="#">My Requests</a>
-                <a href="#">Help</a>
-            </div>
+            <div class="logo">Dashboard</div>
+            <!-- Hidden theme toggle used by theme.js -->
+            <button id="theme-toggle" style="display:none;"></button>
+
             <div class="nav-right">
                 <div id="notification-bell-container" class="nav-icon-wrapper"></div>
-                <i class="fa-regular fa-moon icon"></i>
-                <div class="profile">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="User">
+                <div class="profile" id="profile-trigger">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="User" id="profile-avatar">
                     <span id="display-name" class="profile-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div id="profile-dropdown" class="profile-dropdown hidden">
+                    <div class="profile-dropdown-item" id="menu-my-requests">My Requests</div>
+                    <div class="profile-dropdown-item" id="menu-theme-toggle">Toggle Theme</div>
+                    <div class="profile-dropdown-item" id="menu-logout">Logout</div>
                 </div>
             </div>
         </nav>
@@ -44,18 +44,9 @@
             <!-- Main Hero Area -->
             <div class="main-hero">
                 <div class="hero-left">
-                    <h1 class="welcome-title">Welcome back, <span id="welcome-name">User</span> 👋</h1>
+                    <h1 class="welcome-title">Welcome back, <span id="welcome-name">User</span></h1>
                     <p class="welcome-subtitle">Search, upload, and manage your digital materials all in one place.</p>
-                    
                     <div id="search-container"></div>
-                    
-                    <div class="popular-tags">
-                        <span>Popular:</span>
-                        <button class="tag" data-tag="reports">Reports</button>
-                        <button class="tag" data-tag="videos">Videos</button>
-                        <button class="tag" data-tag="images">Images</button>
-                        <button class="tag" data-tag="presentations">Presentations</button>
-                    </div>
                 </div>
 
                 <div class="hero-right">

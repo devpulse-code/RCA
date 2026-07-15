@@ -19,7 +19,7 @@ export async function passcodeLogin(passcode) {
 }
 
 export async function adminLogin(username, password, totp = null) {
-  const res = await fetch(`${API_BASE}/ddm/auth/admin/login`, {   // <-- corrected path
+  const res = await fetch(`${API_BASE}/ddm/auth/admin/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password, totp }),

@@ -42,6 +42,10 @@ function showRateLimit(retryAfterSeconds) {
     countdownInterval = setInterval(update, 1000);
 }
 
+function navigateTo(url) {
+    window.location.href = url;
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearError();
@@ -60,15 +64,20 @@ form.addEventListener('submit', async (e) => {
     } catch (err) {
         let message = 'Login failed. Please try again.';
         let retryAfter = null;
-        try {
-            const body = typeof err.message === 'string' ? JSON.parse(err.message) : null;
-            if (body && body.error === 'rate_limit_exceeded') {
-                retryAfter = body.retry_after;
-            } else if (body && body.detail) {
-                message = body.detail;
+
+        if (err.data) {
+            message = err.data.detail || message;
+            if (err.data.error === 'rate_limit_exceeded') {
+                retryAfter = err.data.retry_after;
             }
-        } catch (_) {
-            message = err.message || message;
+        } else if (typeof err.message === 'string') {
+            try {
+                const body = JSON.parse(err.message);
+                message = body.detail || message;
+                if (body.error === 'rate_limit_exceeded') retryAfter = body.retry_after;
+            } catch (_) {
+                message = err.message || message;
+            }
         }
 
         if (retryAfter) {
