@@ -1,197 +1,438 @@
 // RCA/frontend/src/js/ddm-dashboard.js
+/**
+ * DDM Dashboard — Enhanced JavaScript
+ * Handles session, greeting, notifications, AI FAB, filters, etc.
+ */
+
 let userName = "User";
 let currentView = "files";
+let fileListInstance = null;
 
+/* ──────────────── Toast System ──────────────── */
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item toast--${type}`;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+
+    const icons = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-exclamation',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+
+    toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info}" aria-hidden="true"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    const removeToast = () => {
+        toast.classList.add('toast--removing');
+        toast.addEventListener('animationend', () => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, { once: true });
+    };
+
+    setTimeout(removeToast, duration);
+}
+
+/* ──────────────── Error Banner ──────────────── */
 function showError(msg) {
-    const banner = document.getElementById("error-banner");
+    const banner = document.getElementById('error-banner');
     if (banner) {
         banner.textContent = msg;
-        banner.style.display = "block";
+        banner.style.display = 'block';
+        setTimeout(() => {
+            if (banner.textContent === msg) {
+                banner.style.display = 'none';
+            }
+        }, 8000);
+    }
+    showToast(msg, 'error', 6000);
+}
+
+function hideError() {
+    const banner = document.getElementById('error-banner');
+    if (banner) banner.style.display = 'none';
+}
+
+/* ──────────────── Time Greeting ──────────────── */
+function getTimeGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+}
+
+function updateGreeting() {
+    const greetingPrefix = document.getElementById('greeting-prefix');
+    if (greetingPrefix) {
+        greetingPrefix.textContent = getTimeGreeting();
     }
 }
 
-function getTimeGreeting() {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-}
-
+/* ──────────────── Session Verification ──────────────── */
 async function verifySession() {
     try {
         const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
         if (res.ok) {
             const data = await res.json();
-            console.log("Session data:", data);
-            if (data.user_id || data.role === 'user') {
-                // Use the name from backend; if it's exactly "User", admin may not have set a real name
-                userName = data.name || data.display_name || data.username || "User";
-                document.getElementById("welcome-name").textContent = userName;
-                document.getElementById("display-name").textContent = userName;
-                document.getElementById("greeting-prefix").textContent = getTimeGreeting();
-                if (userName === "User") {
-                    console.warn("User name still 'User' — ask admin to set a real name for this user.");
-                }
-                return true;
-            }
+            // Use the name given by the admin; fallback chain:
+            userName = data.name || data.display_name || data.username || 'User';
+            document.getElementById('welcome-name').textContent = userName;
+            document.getElementById('display-name').textContent = userName;
+            const dropdownName = document.getElementById('dropdown-display-name');
+            if (dropdownName) dropdownName.textContent = userName;
+            updateGreeting();
+            hideError();
+            return true;
         }
         window.location.href = '/pages/ddm/login.html';
         return false;
     } catch (e) {
         showError('Backend unreachable – redirecting to login');
-        setTimeout(() => { window.location.href = '/pages/ddm/login.html'; }, 2000);
+        setTimeout(() => window.location.href = '/pages/ddm/login.html', 2500);
         return false;
     }
 }
 
+/* ──────────────── Skeleton & Empty States ──────────────── */
+function showSkeletonLoader() {
+    const el = document.getElementById('skeleton-loader');
+    const empty = document.getElementById('empty-state');
+    if (el) el.style.display = 'grid';
+    if (empty) empty.style.display = 'none';
+}
+
+function hideSkeletonLoader() {
+    const el = document.getElementById('skeleton-loader');
+    if (el) el.style.display = 'none';
+}
+
+function showEmptyState() {
+    const empty = document.getElementById('empty-state');
+    const skel = document.getElementById('skeleton-loader');
+    if (skel) skel.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+}
+
+function hideEmptyState() {
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.style.display = 'none';
+}
+
+/* ──────────────── View Toggle ──────────────── */
 function toggleView(view) {
     currentView = view;
-    const fileListContainer = document.getElementById("file-list-container");
-    let uploadTrackerContainer = document.getElementById("upload-tracker-container");
+    const fileListContainer = document.getElementById('file-list-container');
+    let uploadTrackerContainer = document.getElementById('upload-tracker-container');
+
     if (!uploadTrackerContainer) {
-        uploadTrackerContainer = document.createElement("div");
-        uploadTrackerContainer.id = "upload-tracker-container";
+        uploadTrackerContainer = document.createElement('div');
+        uploadTrackerContainer.id = 'upload-tracker-container';
         fileListContainer.parentNode.insertBefore(uploadTrackerContainer, fileListContainer);
     }
 
-    if (view === "requests") {
-        fileListContainer.style.display = "none";
-        uploadTrackerContainer.style.display = "block";
-        document.querySelector('.library-header').style.display = "none";
-        document.querySelector('.load-more-container').style.display = "none";
+    const libraryHeader = document.querySelector('.library-header');
+    const loadMoreContainer = document.querySelector('.load-more-container');
+    const skeletonLoader = document.getElementById('skeleton-loader');
+    const emptyState = document.getElementById('empty-state');
+
+    if (view === 'requests') {
+        fileListContainer.style.display = 'none';
+        if (skeletonLoader) skeletonLoader.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'none';
+        uploadTrackerContainer.style.display = 'block';
+        if (libraryHeader) libraryHeader.style.display = 'none';
+        if (loadMoreContainer) loadMoreContainer.style.display = 'none';
+
         if (uploadTrackerContainer.childElementCount === 0) {
-            import("../components/ddm/upload-tracker.js").then(({ default: UploadTracker }) => {
-                new UploadTracker("upload-tracker-container");
-            });
+            import('../components/ddm/upload-tracker.js')
+                .then(({ default: UploadTracker }) => {
+                    new UploadTracker('upload-tracker-container');
+                })
+                .catch(err => console.warn('Upload tracker failed to load:', err));
         }
     } else {
-        fileListContainer.style.display = "block";
-        uploadTrackerContainer.style.display = "none";
-        document.querySelector('.library-header').style.display = "flex";
-        document.querySelector('.load-more-container').style.display = "flex";
+        fileListContainer.style.display = 'block';
+        uploadTrackerContainer.style.display = 'none';
+        if (libraryHeader) libraryHeader.style.display = 'flex';
+        if (loadMoreContainer) loadMoreContainer.style.display = 'flex';
+        if (fileListContainer && fileListContainer.children.length === 0) {
+            showSkeletonLoader();
+        }
+    }
+
+    const profileTrigger = document.getElementById('profile-trigger');
+    if (profileTrigger) profileTrigger.setAttribute('aria-expanded', 'false');
+}
+
+/* ──────────────── Scroll Reveal ──────────────── */
+function initScrollReveal() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '0px 0px -40px 0px', threshold: 0.1 });
+
+    const librarySection = document.querySelector('.library-section');
+    if (librarySection) {
+        librarySection.style.opacity = '0';
+        librarySection.style.transform = 'translateY(16px)';
+        librarySection.style.transition = 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+        revealObserver.observe(librarySection);
     }
 }
 
+/* ──────────────── File Count Indicator ──────────────── */
+function updateFileCount(count) {
+    const indicator = document.getElementById('file-count-indicator');
+    if (indicator) {
+        if (count !== undefined && count !== null) {
+            indicator.textContent = `${count} file${count !== 1 ? 's' : ''}`;
+            indicator.style.display = 'inline-block';
+        } else {
+            indicator.style.display = 'none';
+        }
+    }
+}
+
+/* ──────────────── Keyboard Navigation ──────────────── */
+function initKeyboardNavigation() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const profileDropdown = document.getElementById('profile-dropdown');
+            if (profileDropdown && !profileDropdown.classList.contains('hidden')) {
+                profileDropdown.classList.add('hidden');
+                const trigger = document.getElementById('profile-trigger');
+                if (trigger) {
+                    trigger.setAttribute('aria-expanded', 'false');
+                    trigger.focus();
+                }
+            }
+        }
+    });
+
+    const profileTrigger = document.getElementById('profile-trigger');
+    if (profileTrigger) {
+        profileTrigger.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                profileTrigger.click();
+            }
+        });
+    }
+}
+
+/* ──────────────── Main Init ──────────────── */
 async function init() {
+    showSkeletonLoader();
     const authenticated = await verifySession();
     if (!authenticated) return;
 
-    // Upload Form
-    try {
-        const { default: UploadForm } = await import("../components/ddm/upload-form.js");
-        new UploadForm("upload-container");
-    } catch (err) {
-        console.warn("Upload form not available:", err);
-    }
+    // Periodic greeting update
+    updateGreeting();
+    setInterval(updateGreeting, 60000);
 
-    // Search Bar
+    // Load components
     try {
-        const { default: SearchBar } = await import("../components/ddm/search-bar.js");
-        new SearchBar("search-container", (data) => {
+        const { default: UploadForm } = await import('../components/ddm/upload-form.js');
+        new UploadForm('upload-container');
+    } catch (err) { console.warn('Upload form not available:', err); }
+
+    try {
+        const { default: SearchBar } = await import('../components/ddm/search-bar.js');
+        new SearchBar('search-container', (data) => {
             document.dispatchEvent(new CustomEvent('search-results', { detail: data }));
+            if (data && data.results && data.results.length > 0) {
+                hideEmptyState();
+                hideSkeletonLoader();
+            }
         });
-    } catch (err) {
-        console.error("Search bar failed to load:", err);
-    }
+    } catch (err) { console.error('Search bar failed:', err); }
 
-    // Group Filter
     try {
-        const { default: GroupFilter } = await import("../components/ddm/group-filter.js");
-        window.groupFilter = new GroupFilter("group-filter-container");
-    } catch (err) {
-        console.warn("Group filter not available:", err);
-    }
+        const { default: GroupFilter } = await import('../components/ddm/group-filter.js');
+        window.groupFilter = new GroupFilter('group-filter-container');
+    } catch (err) { console.warn('Group filter not available:', err); }
 
-    // File List
-    let fileList;
     try {
-        const { FileList } = await import("../components/ddm/file-list.js");
-        fileList = new FileList("file-list-container");
+        const { FileList } = await import('../components/ddm/file-list.js');
+        fileListInstance = new FileList('file-list-container');
+
+        const fileListContainer = document.getElementById('file-list-container');
+        if (fileListContainer) {
+            const observer = new MutationObserver(() => {
+                const cards = fileListContainer.querySelectorAll('.file-card, .file-list-row');
+                if (cards.length > 0) {
+                    hideSkeletonLoader();
+                    hideEmptyState();
+                    updateFileCount(cards.length);
+                } else if (
+                    fileListContainer.children.length > 0 &&
+                    !fileListContainer.querySelector('#skeleton-loader') &&
+                    !fileListContainer.querySelector('#empty-state')
+                ) {
+                    const hasFiles = fileListContainer.querySelector('.file-card') || fileListContainer.querySelector('.file-list-row');
+                    if (!hasFiles && fileListContainer.style.display !== 'none') {
+                        showEmptyState();
+                    }
+                }
+            });
+            observer.observe(fileListContainer, { childList: true, subtree: true });
+        }
+
         document.addEventListener('search-results', (e) => {
             const results = e.detail.results || [];
-            fileList.setFiles(results);
+            if (fileListInstance) fileListInstance.setFiles(results);
+            if (results.length === 0) showEmptyState();
+            else {
+                hideEmptyState();
+                updateFileCount(results.length);
+            }
         });
+
         document.addEventListener('refresh-files', () => {
-            fileList.load();
+            if (fileListInstance) {
+                showSkeletonLoader();
+                hideEmptyState();
+                fileListInstance.load();
+            }
         });
     } catch (err) {
-        document.getElementById("file-list-container").innerHTML = `<p class="text-red-500">Failed to load file list: ${err.message}</p>`;
+        document.getElementById('file-list-container').innerHTML =
+            `<p class="empty-state" style="color: var(--danger);">Failed to load file list: ${err.message}</p>`;
         console.error(err);
+        hideSkeletonLoader();
     }
 
     // Notification Panel
     try {
-        const { default: NotificationPanel } = await import("../components/ddm/notification-panel.js");
-        new NotificationPanel("notification-bell-container");
-    } catch (err) {
-        console.warn("Notification panel not available:", err);
-    }
+        const { default: NotificationPanel } = await import('../components/ddm/notification-panel.js');
+        new NotificationPanel('notification-bell-container');
+    } catch (err) { console.warn('Notification panel not available:', err); }
 
-    // AI Chat Panel
+    // AI Chat Panel (wire FAB)
     try {
-        const { default: AiChatPanel } = await import("../components/ddm/ai-chat-panel.js");
+        const { default: AiChatPanel } = await import('../components/ddm/ai-chat-panel.js');
         window.aiChatPanel = new AiChatPanel();
+        const aiFab = document.getElementById('ai-chat-trigger');
+        if (aiFab && window.aiChatPanel && typeof window.aiChatPanel.toggle === 'function') {
+            aiFab.addEventListener('click', () => window.aiChatPanel.toggle());
+        }
     } catch (err) {
-        console.warn("AI chat panel not available:", err);
+        console.warn('AI chat panel not available:', err);
+        const aiFab = document.getElementById('ai-chat-trigger');
+        if (aiFab) aiFab.style.display = 'none';
     }
 
-    // View Toggle
-    const viewBtns = document.querySelectorAll('.view-btn');
-    viewBtns.forEach(btn => {
+    // View mode toggles
+    document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            viewBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const view = btn.dataset.view;
-            import("../stores/ui-store.js").then(({ uiStore }) => {
-                uiStore.setViewMode(view);
+            document.querySelectorAll('.view-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
             });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            const view = btn.dataset.view;
+            import('../stores/ui-store.js').then(({ uiStore }) => uiStore.setViewMode(view)).catch(console.warn);
         });
     });
 
-    // File type filter
-    const typeBtns = document.querySelectorAll('#file-type-filter .type-btn');
-    typeBtns.forEach(btn => {
+    // Sort buttons
+    document.querySelectorAll('.sort-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            typeBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const type = btn.dataset.type;
-            import("../stores/ui-store.js").then(({ uiStore }) => {
-                uiStore.setTypeFilter(type);
+            // You can wire this to actual sort logic if needed
+            const sort = btn.dataset.sort;
+            console.log('Sort by:', sort);
+            // e.g., dispatch an event or call fileListInstance.sort(sort)
+        });
+    });
+
+    // File type filter buttons
+    document.querySelectorAll('#file-type-filter .type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#file-type-filter .type-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
             });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            const type = btn.dataset.type;
+            import('../stores/ui-store.js').then(({ uiStore }) => uiStore.setTypeFilter(type)).catch(console.warn);
         });
     });
 
     // Profile dropdown
-    const profileTrigger = document.getElementById("profile-trigger");
-    const profileDropdown = document.getElementById("profile-dropdown");
-    profileTrigger.addEventListener("click", () => {
-        profileDropdown.classList.toggle("hidden");
-    });
+    const profileTrigger = document.getElementById('profile-trigger');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    if (profileTrigger && profileDropdown) {
+        profileTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = profileDropdown.classList.contains('hidden');
+            profileDropdown.classList.toggle('hidden');
+            profileTrigger.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        });
 
-    document.getElementById("menu-my-requests").addEventListener("click", () => {
-        toggleView("requests");
-        profileDropdown.classList.add("hidden");
-    });
+        document.getElementById('menu-my-requests')?.addEventListener('click', () => {
+            toggleView('requests');
+            profileDropdown.classList.add('hidden');
+            profileTrigger.setAttribute('aria-expanded', 'false');
+        });
+        document.getElementById('menu-theme-toggle')?.addEventListener('click', () => {
+            document.getElementById('theme-toggle')?.click();
+            profileDropdown.classList.add('hidden');
+            profileTrigger.setAttribute('aria-expanded', 'false');
+        });
+        document.getElementById('menu-logout')?.addEventListener('click', () => {
+            document.cookie = 'user_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            showToast('Logging out...', 'info', 2000);
+            setTimeout(() => window.location.href = '/pages/ddm/login.html', 400);
+        });
 
-    document.getElementById("menu-theme-toggle").addEventListener("click", () => {
-        const themeToggleBtn = document.getElementById("theme-toggle");
-        if (themeToggleBtn) themeToggleBtn.click();
-        profileDropdown.classList.add("hidden");
-    });
+        document.addEventListener('click', (e) => {
+            if (!profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
+                profileDropdown.classList.add('hidden');
+                profileTrigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
-    document.getElementById("menu-logout").addEventListener("click", () => {
-        document.cookie = "user_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        window.location.href = "/pages/ddm/login.html";
-    });
+    initKeyboardNavigation();
+    initScrollReveal();
+    toggleView('files');
 
-    document.addEventListener("click", (e) => {
-        if (!profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
-            profileDropdown.classList.add("hidden");
+    setTimeout(() => {
+        hideSkeletonLoader();
+        const fl = document.getElementById('file-list-container');
+        if (fl && fl.style.display !== 'none') {
+            const hasFiles = fl.querySelector('.file-card') || fl.querySelector('.file-list-row');
+            if (!hasFiles && currentView === 'files') showEmptyState();
         }
-    });
+    }, 5000);
 
-    toggleView("files");
+    window.showDashboardToast = showToast;
+    window.updateFileCount = updateFileCount;
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener('DOMContentLoaded', init);
+
+export { showToast, showError, hideError, toggleView, updateFileCount };
 // end of RCA/frontend/src/js/ddm-dashboard.js

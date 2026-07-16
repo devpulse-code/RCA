@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>Dashboard — DDM</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/global.css" />
     <link rel="stylesheet" href="/css/tailwind.min.css">
@@ -16,80 +16,151 @@
 </head>
 <body>
     <div id="page-transition-wrapper">
-        <div id="toast-container"></div>
-        <div id="error-banner" class="error-banner"></div>
+        <div id="toast-container" aria-live="polite"></div>
+        <div id="error-banner" class="error-banner" role="alert" aria-live="assertive"></div>
 
-        <nav class="navbar">
-            <div class="logo">Dashboard</div>
-            <button id="theme-toggle" style="display:none;"></button>
+        <!-- Navigation -->
+        <nav class="navbar" role="navigation" aria-label="Main navigation">
+            <div class="nav-left">
+                            <span class="logo-text"><a href="dashboard.html">Dashboard</a></span>
+                            
+            </div>
+            <button id="theme-toggle" style="display:none;" aria-label="Toggle theme"></button>
             <div class="nav-right">
-                <div id="notification-bell-container" class="nav-icon-wrapper"></div>
-                <div class="profile" id="profile-trigger">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="User" id="profile-avatar">
+                <div id="notification-bell-container" class="nav-icon-wrapper" aria-label="Notifications"></div>
+                <div class="profile" id="profile-trigger" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="User profile menu">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="User avatar" id="profile-avatar" loading="lazy">
                     <span id="display-name" class="profile-name">User</span>
-                    <i class="fa-solid fa-chevron-down"></i>
+                    <i class="fa-solid fa-chevron-down profile-chevron" aria-hidden="true"></i>
                 </div>
-                <div id="profile-dropdown" class="profile-dropdown hidden">
-                    <div class="profile-dropdown-item" id="menu-my-requests">My Requests</div>
-                    <div class="profile-dropdown-item" id="menu-theme-toggle">Toggle Theme</div>
-                    <div class="profile-dropdown-item" id="menu-logout">Logout</div>
+                <div id="profile-dropdown" class="profile-dropdown hidden" role="menu" aria-label="User menu">
+                    <div class="profile-dropdown-header">
+                        <span class="dropdown-user-name" id="dropdown-display-name">User</span>
+                        <span class="dropdown-user-role">Member</span>
+                    </div>
+                    <div class="profile-dropdown-divider"></div>
+                    <div class="profile-dropdown-item" id="menu-my-requests" role="menuitem" tabindex="0">
+                        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                        My Requests
+                    </div>
+                    <div class="profile-dropdown-item" id="menu-theme-toggle" role="menuitem" tabindex="0">
+                        <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                        Toggle Theme
+                    </div>
+                    <div class="profile-dropdown-divider"></div>
+                    <div class="profile-dropdown-item profile-dropdown-item--danger" id="menu-logout" role="menuitem" tabindex="0">
+                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                        Logout
+                    </div>
                 </div>
             </div>
         </nav>
 
-        <div class="container">
-            <div class="main-hero">
+        <!-- Main Content -->
+        <main class="container">
+            <!-- Hero Section -->
+            <section class="main-hero" aria-labelledby="hero-heading">
                 <div class="hero-left">
-                    <h1 class="welcome-title"><span id="greeting-prefix">Welcome back</span>, <span id="welcome-name">User</span></h1>
-                    <p class="welcome-subtitle">Search, upload, and manage your digital materials all in one place.</p>
-                    <div id="search-container"></div>
-                    <div class="file-type-filter" id="file-type-filter">
-                        <button class="type-btn active" data-type="all">All Files</button>
-                        <button class="type-btn" data-type="image">Images</button>
-                        <button class="type-btn" data-type="video">Videos</button>
-                        <button class="type-btn" data-type="doc">Docs</button>
+                    <h1 class="welcome-title" id="hero-heading">
+                        <span id="greeting-prefix">Welcome back</span>, <span id="welcome-name" class="welcome-name-accent">User</span>
+                    </h1>
+                    <p class="welcome-subtitle">Search, upload, and manage your digital materials — all in one beautifully simple place.</p>
+                    <div id="search-container" class="search-container-wrapper"></div>
+                    <div class="file-type-filter" id="file-type-filter" role="group" aria-label="Filter files by type">
+                        <button class="type-btn active" data-type="all" aria-pressed="true">All Files</button>
+                        <button class="type-btn" data-type="image" aria-pressed="false">Images</button>
+                        <button class="type-btn" data-type="video" aria-pressed="false">Videos</button>
+                        <button class="type-btn" data-type="doc" aria-pressed="false">Documents</button>
                     </div>
                 </div>
                 <div class="hero-right">
                     <div id="upload-container">
-    <div class="upload-card" id="drop-zone">
-        <div class="upload-icon">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-        </div>
-        <h3>Upload New File</h3>
-        <p>Drag & drop your file here<br>or</p>
-        <button class="choose-file-btn" id="file-input-trigger">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            Choose File
-        </button>
-        <p class="file-size-info">Max file size: 250MB</p>
-        <input type="file" id="file-input" hidden>
-    </div>
-</div>
-                </div>
-            </div>
-
-            <div class="library-header">
-                <h2 class="library-title">File Library</h2>
-                <div class="filters">
-                    <div id="group-filter-container" style="display:inline-block;"></div>
-                    <button class="filter-btn">All Time <i class="fa-solid fa-chevron-down"></i></button>
-                    <div class="sort-views">
-                        <div class="sort-select">Sort by: Newest <i class="fa-solid fa-chevron-down"></i></div>
-                        <div class="view-icons">
-                            <button class="view-btn active" data-view="grid"><i class="fa-solid fa-grid-2"></i></button>
-                            <button class="view-btn" data-view="list"><i class="fa-solid fa-bars"></i></button>
+                        <div class="upload-card" id="drop-zone" role="button" tabindex="0" aria-label="Upload file - drag and drop or click to browse">
+                            <div class="upload-icon-ring">
+                                <div class="upload-icon">
+                                    <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <h3>Upload New File</h3>
+                            <p>Drag & drop your file here<br>or click to browse</p>
+                            <button class="choose-file-btn" id="file-input-trigger">
+                                <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                                Choose File
+                            </button>
+                            <p class="file-size-info">Maximum file size: 250 MB</p>
+                            <input type="file" id="file-input" hidden aria-hidden="true">
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div id="file-list-container"></div>
+            <!-- Library Section -->
+            <section class="library-section" aria-labelledby="library-heading">
+                <div class="library-header">
+                    <div class="library-header-left">
+                        <h2 class="library-title" id="library-heading">File Library</h2>
+                        <span class="library-count" id="file-count-indicator" aria-live="polite"></span>
+                    </div>
+                    <div class="filters">
+                        <div id="group-filter-container" class="group-filter-inline"></div>
+                        <div class="filters-right-group">
+                            <button class="filter-btn" aria-label="Filter by time period">
+                                All Time
+                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <!-- ── Redesigned sort & view group ── -->
+                            <div class="sort-views-group" role="group" aria-label="Sort and view options">
+                                <button class="sort-view-btn active" data-sort="newest" aria-pressed="true">
+                                    <i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i>
+                                    Newest
+                                </button>
+                                <button class="sort-view-btn" data-sort="oldest" aria-pressed="false">
+                                    <i class="fa-solid fa-arrow-down-short-wide" aria-hidden="true"></i>
+                                    Oldest
+                                </button>
+                                <span class="sort-view-divider" aria-hidden="true"></span>
+                                <button class="sort-view-btn view-only active" data-view="grid" aria-pressed="true" aria-label="Grid view">
+                                    <i class="fa-solid fa-grip" aria-hidden="true"></i>
+                                </button>
+                                <button class="sort-view-btn view-only" data-view="list" aria-pressed="false" aria-label="List view">
+                                    <i class="fa-solid fa-list" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="load-more-container">
-                <button id="load-more-btn" class="load-more-btn">Load more <i class="fa-solid fa-chevron-down"></i></button>
-            </div>
-        </div>
+                <!-- File List Container -->
+                <div id="file-list-container">
+                    <div class="skeleton-grid" id="skeleton-loader" aria-hidden="true">
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                    </div>
+                    <div class="empty-state" id="empty-state" style="display:none;">
+                        <div class="empty-state-icon">
+                            <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                        </div>
+                        <h3>No files yet</h3>
+                        <p>Upload your first file to get started. Your digital materials will appear here.</p>
+                    </div>
+                </div>
+
+                <div class="load-more-container">
+                    <button id="load-more-btn" class="load-more-btn">
+                        Load more
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <button class="ai-chat-fab" id="ai-chat-trigger" aria-label="Ask AI" title="Ask AI">
+            <i class="fa-solid fa-robot" aria-hidden="true"></i>
+        </button>
     </div>
 
     <script src="/js/theme.js"></script>

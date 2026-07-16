@@ -6,6 +6,7 @@ export default class GroupFilter {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.groups = [];
+    this.activeGroupId = null;
     this.render();
     this.loadGroups();
   }
@@ -27,32 +28,62 @@ export default class GroupFilter {
     } catch (e) {
       console.warn("Could not load groups for filter", e);
     }
-    this.renderDropdown();
+    this.renderDropdownItems();
   }
 
   render() {
     this.container.innerHTML = `
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-semibold">Filter by Group:</label>
-        <select id="group-filter-select" class="border p-1 rounded bg-[var(--input-bg)] text-[var(--text-primary)]">
-          <option value="">All Groups</option>
-        </select>
+      <div class="group-filter-custom">
+        <button id="group-filter-btn" class="group-filter-btn">
+          <span id="group-filter-label">All Groups</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div id="group-filter-dropdown" class="group-filter-dropdown hidden">
+          <div class="group-filter-item" data-id="">All Groups</div>
+        </div>
       </div>
     `;
-    this.renderDropdown();
-    document.getElementById("group-filter-select").addEventListener("change", (e) => {
-      const val = e.target.value;
-      uiStore.setGroupFilter(val || null);
+    this.btn = document.getElementById('group-filter-btn');
+    this.dropdown = document.getElementById('group-filter-dropdown');
+    this.label = document.getElementById('group-filter-label');
+
+    this.btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.dropdown.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      if (!this.container.contains(e.target)) {
+        this.dropdown.classList.add('hidden');
+      }
     });
   }
 
-  renderDropdown() {
-    const select = document.getElementById("group-filter-select");
-    if (!select) return;
-    select.innerHTML = '<option value="">All Groups</option>';
+  renderDropdownItems() {
+    if (!this.dropdown) return;
+    let html = '<div class="group-filter-item" data-id="">All Groups</div>';
     this.groups.forEach(g => {
-      select.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+      html += `<div class="group-filter-item" data-id="${g.id}">${g.name}</div>`;
     });
+    this.dropdown.innerHTML = html;
+
+    this.dropdown.querySelectorAll('.group-filter-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.id;
+        this.activeGroupId = id || null;
+        this.label.textContent = id ? item.textContent : 'All Groups';
+        uiStore.setGroupFilter(this.activeGroupId);
+        this.dropdown.classList.add('hidden');
+        // Highlight active item
+        this.dropdown.querySelectorAll('.group-filter-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+
+    // Set initial active if needed
+    if (this.activeGroupId) {
+      const activeItem = this.dropdown.querySelector(`[data-id="${this.activeGroupId}"]`);
+      if (activeItem) activeItem.classList.add('active');
+    }
   }
 }
 // end of RCA/frontend/src/components/ddm/group-filter.js

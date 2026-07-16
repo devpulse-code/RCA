@@ -3,35 +3,48 @@ export default class NotificationPanel {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.notifications = [];
-    this.unreadCount = 0;
+    this.hiddenIds = this._loadHidden();
     this.render();
     this.fetchNotifications();
   }
 
+  _loadHidden() {
+    try {
+      return JSON.parse(localStorage.getItem('ddm_hidden_announcements') || '[]');
+    } catch { return []; }
+  }
+
+  _saveHidden() {
+    localStorage.setItem('ddm_hidden_announcements', JSON.stringify(this.hiddenIds));
+  }
+
   async fetchNotifications() {
     try {
-      // Update this endpoint to the one that returns announcements/notifications
       const res = await fetch('/api/ddm/announcements', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       this.notifications = Array.isArray(data) ? data : (data.announcements || data.results || []);
-      this.unreadCount = this.notifications.filter(n => !n.is_read).length;
       this.updateBadge();
       this.renderDropdownContent();
     } catch (e) {
       console.warn('Notification fetch error:', e);
+      if (this.list) this.list.innerHTML = '<div class="notification-item notification-error">Unable to load notifications</div>';
     }
   }
 
   render() {
     this.container.innerHTML = `
-      <div class="notification-bell" id="notification-bell">
-        <i class="fa-solid fa-bell"></i>
-        <span id="notification-badge" class="notification-badge">0</span>
-      </div>
-      <div id="notification-dropdown" class="notification-dropdown">
-        <div class="notification-section-title">Notifications</div>
-        <div id="notification-list"></div>
+      <div class="notification-bell-wrapper">
+        <button class="notification-bell" id="notification-bell" aria-label="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span id="notification-badge" class="notification-badge" style="display:none;">0</span>
+        </button>
+        <div id="notification-dropdown" class="notification-dropdown">
+          <div class="notification-dropdown-header">
+            <span>Notifications</span>
+          </div>
+          <div id="notification-list" class="notification-list"></div>
+        </div>
       </div>
     `;
     this.bell = document.getElementById('notification-bell');
@@ -39,7 +52,8 @@ export default class NotificationPanel {
     this.badge = document.getElementById('notification-badge');
     this.list = document.getElementById('notification-list');
 
-    this.bell.addEventListener('click', () => {
+    this.bell.addEventListener('click', (e) => {
+      e.stopPropagation();
       this.dropdown.classList.toggle('open');
     });
 
@@ -48,18 +62,13 @@ export default class NotificationPanel {
         this.dropdown.classList.remove('open');
       }
     });
-
-    // Mark all as read when bell clicked (optional)
-    this.bell.addEventListener('click', () => {
-      if (this.unreadCount > 0) {
-        this.markAllRead();
-      }
-    });
   }
 
   updateBadge() {
-    if (this.unreadCount > 0) {
-      this.badge.textContent = this.unreadCount;
+    const visible = this.notifications.filter(n => !this.hiddenIds.includes(n.id));
+    const count = visible.length;
+    if (count > 0) {
+      this.badge.textContent = count > 99 ? '99+' : count;
       this.badge.style.display = 'flex';
     } else {
       this.badge.style.display = 'none';
@@ -68,62 +77,49 @@ export default class NotificationPanel {
 
   renderDropdownContent() {
     if (!this.list) return;
-    if (this.notifications.length === 0) {
-      this.list.innerHTML = '<div class="notification-item">No new notifications</div>';
+    const visible = this.notifications.filter(n => !this.hiddenIds.includes(n.id));
+    if (visible.length === 0) {
+      this.list.innerHTML = '<div class="notification-item notification-empty">No new announcements</div>';
       return;
     }
-    this.list.innerHTML = this.notifications
-      .map(n => {
-        const readClass = n.is_read ? 'text-gray-400' : '';
-        const seenButton = !n.is_read
-          ? `<button class="mark-seen-btn" data-id="${n.id}" style="margin-top:4px; font-size:12px; color:var(--accent); background:none; border:none; cursor:pointer;">Mark as read</button>`
-          : '';
-        return `
-          <div class="notification-item ${readClass}" data-id="${n.id}">
-            <strong>${n.title || 'Announcement'}</strong>
-            <p>${n.message || ''}</p>
-            ${seenButton}
-          </div>
-        `;
-      })
-      .join('');
+    this.list.innerHTML = visible.map(n => `
+      <div class="notification-item" data-id="${n.id}">
+        <div class="notification-item-content">
+          <strong class="notification-title">${n.title || 'Announcement'}</strong>
+          <p class="notification-message">${n.message || n.body || ''}</p>
+          <span class="notification-time">${this._formatTime(n.created_at)}</span>
+        </div>
+        <button class="hide-notification-btn" data-id="${n.id}" title="Hide this announcement">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    `).join('');
 
-    // Attach "mark as read" events
-    this.list.querySelectorAll('.mark-seen-btn').forEach(btn => {
+    this.list.querySelectorAll('.hide-notification-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        this.markAsRead(id);
+        if (id && !this.hiddenIds.includes(id)) {
+          this.hiddenIds.push(id);
+          this._saveHidden();
+          this.updateBadge();
+          this.renderDropdownContent();
+        }
       });
     });
   }
 
-  async markAsRead(id) {
-    try {
-      await fetch(`/api/ddm/announcements/${id}/read`, { method: 'POST', credentials: 'include' });
-      // Update local data
-      const notif = this.notifications.find(n => n.id == id);
-      if (notif) {
-        notif.is_read = true;
-        this.unreadCount = this.notifications.filter(n => !n.is_read).length;
-        this.updateBadge();
-        this.renderDropdownContent();
-      }
-    } catch (e) {
-      console.error('Failed to mark as read', e);
-    }
-  }
-
-  async markAllRead() {
-    try {
-      await fetch('/api/ddm/announcements/read-all', { method: 'POST', credentials: 'include' });
-      this.notifications.forEach(n => n.is_read = true);
-      this.unreadCount = 0;
-      this.updateBadge();
-      this.renderDropdownContent();
-    } catch (e) {
-      console.error('Failed to mark all read', e);
-    }
+  _formatTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    return date.toLocaleDateString();
   }
 }
 // end of RCA/frontend/src/components/ddm/notification-panel.js

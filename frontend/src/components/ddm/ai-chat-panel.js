@@ -7,38 +7,25 @@ export default class AiChatPanel {
   constructor() {
     this.isOpen = false;
     this.messages = [];
-    this.currentFile = null; // { id, name }
-    this._initFloatingButton();
+    this.currentFile = null;
     this._createPanel();
-    document.addEventListener('ai-chat-message', (e) => {
-      if (e.detail && e.detail.text) {
-        this.sendMessage(e.detail.text);
-      }
-    });
-  }
-
-  _initFloatingButton() {
-    const btn = document.createElement("button");
-    btn.id = "ai-chat-toggle";
-    btn.className = "fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg flex items-center justify-center text-2xl z-50";
-    btn.innerHTML = "💬";
-    btn.addEventListener("click", () => this.toggle());
-    document.body.appendChild(btn);
   }
 
   _createPanel() {
+    // The FAB is already in HTML; only create the chat panel itself (no extra FAB)
     this.panel = document.createElement("div");
     this.panel.id = "ai-chat-panel";
-    this.panel.className = "fixed bottom-24 right-6 w-80 max-h-96 rounded-lg shadow-2xl border z-50 hidden flex flex-col";
+    this.panel.className = "ai-chat-panel hidden";
     this.panel.innerHTML = `
-      <div class="flex justify-between items-center p-3 border-b">
-        <span class="font-semibold text-sm">AI Assistant</span>
-        <button id="ai-chat-close" class="ai-chat-close text-lg leading-none">&times;</button>
+      <div class="ai-chat-header">
+        <span class="ai-chat-title">AI Assistant</span>
+        <button id="ai-chat-close" class="ai-chat-close">&times;</button>
       </div>
-      <div id="ai-file-context" class="hidden text-xs p-2 border-b"></div>
-      <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-3 space-y-2 text-sm"></div>
-      <div class="p-2 border-t">
-        <input type="text" id="ai-chat-input" placeholder="Ask a question..." class="w-full border p-2 rounded text-sm">
+      <div id="ai-file-context" class="hidden text-xs p-2 border-b bg-gray-50 dark:bg-gray-800"></div>
+      <div id="ai-chat-messages" class="ai-chat-messages"></div>
+      <div class="ai-chat-input-area">
+        <input type="text" id="ai-chat-input" placeholder="Ask a question..." class="ai-chat-input">
+        <button id="ai-chat-send" class="ai-chat-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
     `;
     document.body.appendChild(this.panel);
@@ -57,21 +44,13 @@ export default class AiChatPanel {
         }
       }
     });
-
-    this._showContentToggleBanner();
-  }
-
-  _showContentToggleBanner() {
-    const banner = document.createElement("div");
-    banner.id = "ai-content-banner";
-    banner.className = `text-xs p-2 text-center`;
-    banner.classList.add(
-      sessionStore.contentSearchEnabled ? 'banner-on' : 'banner-off'
-    );
-    banner.textContent = sessionStore.contentSearchEnabled
-      ? "Content search is ON – I can answer questions using file contents."
-      : "Content search disabled – I can only help find files by name and description.";
-    this.panel.insertBefore(banner, this.messagesDiv);
+    this.panel.querySelector("#ai-chat-send").addEventListener("click", () => {
+      const text = this.input.value.trim();
+      if (text) {
+        this.sendMessage(text);
+        this.input.value = "";
+      }
+    });
   }
 
   setFileContext(file) {
@@ -104,34 +83,26 @@ export default class AiChatPanel {
     this.messagesDiv.innerHTML = "";
     this.messages.forEach(msg => {
       const div = document.createElement("div");
-      div.className = `mb-2 ${msg.type === 'user' ? 'text-right' : 'text-left'}`;
-      const bubble = document.createElement("span");
-      bubble.className = `inline-block p-2 rounded ${
-        msg.type === 'user' ? 'ai-bubble-user' : 'ai-bubble-assistant'
-      }`;
-
+      div.className = `ai-message ${msg.type === 'user' ? 'ai-message-user' : 'ai-message-assistant'}`;
       if (msg.text) {
-        bubble.textContent = msg.text;
+        div.textContent = msg.text;
       } else if (msg.files) {
         const list = document.createElement("ul");
         msg.files.forEach(f => {
           const li = document.createElement("li");
-          li.className = "text-xs";
           li.textContent = f.name;
           list.appendChild(li);
         });
-        bubble.appendChild(list);
+        div.appendChild(list);
       } else if (msg.answer) {
-        bubble.innerHTML = `<p>${msg.answer}</p>`;
+        div.innerHTML = `<p>${msg.answer}</p>`;
         if (msg.citations && msg.citations.length) {
           const cite = document.createElement("p");
-          cite.className = "text-xs opacity-75 mt-1";
+          cite.className = "ai-citations";
           cite.textContent = `Sources: ${msg.citations.join(", ")}`;
-          bubble.appendChild(cite);
+          div.appendChild(cite);
         }
       }
-
-      div.appendChild(bubble);
       this.messagesDiv.appendChild(div);
     });
     this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
