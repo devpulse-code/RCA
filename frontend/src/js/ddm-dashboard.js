@@ -22,13 +22,16 @@ async function verifySession() {
         const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
         if (res.ok) {
             const data = await res.json();
-            console.log("Session data:", data);   // <-- for debugging name
+            console.log("Session data:", data);
             if (data.user_id || data.role === 'user') {
-                // fallback chain: try common name fields
+                // Use the name from backend; if it's exactly "User", admin may not have set a real name
                 userName = data.name || data.display_name || data.username || "User";
                 document.getElementById("welcome-name").textContent = userName;
                 document.getElementById("display-name").textContent = userName;
                 document.getElementById("greeting-prefix").textContent = getTimeGreeting();
+                if (userName === "User") {
+                    console.warn("User name still 'User' — ask admin to set a real name for this user.");
+                }
                 return true;
             }
         }
@@ -73,7 +76,7 @@ async function init() {
     const authenticated = await verifySession();
     if (!authenticated) return;
 
-    // Upload Form (drag & drop already included)
+    // Upload Form
     try {
         const { default: UploadForm } = await import("../components/ddm/upload-form.js");
         new UploadForm("upload-container");
@@ -116,7 +119,7 @@ async function init() {
         console.error(err);
     }
 
-    // Notification Panel (correct badge logic in separate file)
+    // Notification Panel
     try {
         const { default: NotificationPanel } = await import("../components/ddm/notification-panel.js");
         new NotificationPanel("notification-bell-container");

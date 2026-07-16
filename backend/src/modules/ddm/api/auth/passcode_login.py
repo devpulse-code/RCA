@@ -27,11 +27,12 @@ async def passcode_login(
     if not user:
         raise HTTPException(status_code=401, detail="Invalid passcode")
 
-    # Create user session in Redis
+    # Create user session in Redis, now including the user's name
     session_id = str(uuid.uuid4())
     session_key = f"user_session:{session_id}"
     await redis.hset(session_key, mapping={
         "user_id": str(user.id),
+        "name": user.name,                              # <-- stored here
         "groups": ",".join([str(g.id) for g in user.groups]),
     })
     await redis.expire(session_key, 8 * 3600)  # 8h default

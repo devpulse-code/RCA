@@ -32,18 +32,29 @@ async def check_session(
 
     # User (passcode) session
     if user_sid:
-        user_id = await redis.hget(f"user_session:{user_sid}", "user_id")
+        session_key = f"user_session:{user_sid}"
+        # First try to get name directly from Redis (fast path)
+        name = await redis.hget(session_key, "name")
+        user_id = await redis.hget(session_key, "user_id")
+
         if user_id:
-            # Fetch user name
-            result = await db.execute(
-                select(User).options(selectinload(User.groups)).where(User.id == int(user_id))
-            )
-            user = result.scalars().first()
+            # If name not in Redis (old session), fetch from DB and store it
+            if not name:
+                result = await db.execute(
+                    select(User).options(selectinload(User.groups)).where(User.id == int(user_id))
+                )
+                user = result.scalars().first()
+                if user:
+                    name = user.name
+                    # Save it back to Redis for future requests
+                    await redis.hset(session_key, "name", name)
+                else:
+                    name = "User"
             return {
                 "authenticated": True,
                 "role": "user",
                 "user_id": int(user_id),
-                "name": user.name if user else "User",
+                "name": name,
             }
 
     return JSONResponse(status_code=401, content={"authenticated": False})
