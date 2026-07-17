@@ -1,4 +1,4 @@
-# backend/src/modules/ddm/models/group.py
+# RCA/backend/src/modules/ddm/models/group.py
 from sqlalchemy import Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.src.core.models.base import Base
@@ -30,4 +30,4 @@ class Group(Base, TimestampMixin):
         secondary="announcement_groups",
         back_populates="groups"
     )
-# end of backend/src/modules/ddm/models/group.py
+# end of RCA/backend/src/modules/ddm/models/group.py

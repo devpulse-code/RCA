@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.src.core.db.database import get_db
-from backend.src.modules.ddm.models.division import Division
+from backend.src.modules.ddm.models.group import Group          # was Division
 from backend.src.modules.ddm.api.deps import get_current_admin
 from backend.src.modules.ddm.services.audit_service import log_audit
 
@@ -15,9 +15,9 @@ async def list_divisions(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    result = await db.execute(select(Division))
-    divisions = result.scalars().all()
-    return [{"id": d.id, "name": d.name} for d in divisions]
+    result = await db.execute(select(Group))
+    groups = result.scalars().all()
+    return [{"id": g.id, "name": g.name} for g in groups]
 
 
 @router.post("/", status_code=201)
@@ -27,24 +27,24 @@ async def create_division(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    existing = await db.execute(select(Division).where(Division.name == name))
+    existing = await db.execute(select(Group).where(Group.name == name))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Division already exists")
-    division = Division(name=name)
-    db.add(division)
+    group = Group(name=name)
+    db.add(group)
     await db.commit()
 
     await log_audit(
         db,
         action="division_created",
         admin_username=admin.username,
-        target_type="division",
-        target_id=str(division.id),
+        target_type="group",
+        target_id=str(group.id),
         details={"name": name},
         ip_address=request.client.host,
     )
 
-    return {"id": division.id, "name": division.name}
+    return {"id": group.id, "name": group.name}
 
 
 @router.delete("/{division_id}", status_code=204)
@@ -54,19 +54,19 @@ async def delete_division(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    division = await db.get(Division, division_id)
-    if not division:
+    group = await db.get(Group, division_id)
+    if not group:
         raise HTTPException(status_code=404, detail="Division not found")
-    await db.delete(division)
+    await db.delete(group)
     await db.commit()
 
     await log_audit(
         db,
         action="division_deleted",
         admin_username=admin.username,
-        target_type="division",
+        target_type="group",
         target_id=str(division_id),
-        details={"name": division.name},
+        details={"name": group.name},
         ip_address=request.client.host,
     )
     return

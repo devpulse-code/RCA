@@ -31,7 +31,7 @@ export async function setPasscode(id, passcode) {
   return apiClient.post(`/ddm/admin/users/${id}/set-passcode`, { passcode });
 }
 export async function bulkRevokePasscodes(ids) {
-  return apiClient.post("/ddm/admin/users/bulk-revoke-passcodes", ids);
+  return apiClient.post("/ddm/admin/users/bulk/revoke-passcodes", ids);
 }
 
 // Divisions (was groups)

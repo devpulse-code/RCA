@@ -21,6 +21,6 @@ class User(Base, TimestampMixin):
     encrypted_passcode = Column(String, nullable=False)
     passcode_active = Column(Boolean, default=True)
 
-    # Renamed relationship: groups → divisions
-    groups = relationship("Division", secondary=user_group_association, back_populates="users")
+    # Relationship now uses Group, not Division
+    groups = relationship("Group", secondary=user_group_association, back_populates="users")
 # end of RCA/backend/src/modules/ddm/models/user.py

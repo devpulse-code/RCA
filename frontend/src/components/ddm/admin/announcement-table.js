@@ -139,7 +139,7 @@ export class AnnouncementTable {
     openModal(content, async (modal) => {
       let groups = [];
       try {
-        groups = await AdminService.fetchGroups();
+        groups = await AdminService.fetchDivisions();   // fix: was fetchGroups()
         const select = modal.querySelector("select[name='groups']");
         groups.forEach(g => {
           const opt = document.createElement("option");
@@ -200,7 +200,7 @@ export class AnnouncementTable {
       const select = modal.querySelector("select[name='groups']");
       let groups = [];
       try {
-        groups = await AdminService.fetchGroups();
+        groups = await AdminService.fetchDivisions();   // fix: was fetchGroups()
         groups.forEach(g => {
           const opt = document.createElement("option");
           opt.value = g.name;

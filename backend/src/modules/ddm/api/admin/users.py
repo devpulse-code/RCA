@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.models.user import User
-from backend.src.modules.ddm.models.division import Division           # renamed
+from backend.src.modules.ddm.models.group import Group          # fixed import
 from backend.src.modules.ddm.schemas.user import (
     UserCreate, UserUpdate, UserOut, PasscodeResponse, SetPasscodeRequest
 )
@@ -38,7 +38,7 @@ async def list_users(
                 id=u.id,
                 name=u.name,
                 contact=u.contact,
-                divisions=[g.name for g in u.groups],   # now divisions
+                divisions=[g.name for g in u.groups],   # groups hold the division names
                 passcode_active=u.passcode_active,
                 created_at=str(u.created_at),
                 updated_at=str(u.updated_at),
@@ -54,23 +54,23 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    # payload.divisions is list of division names
-    divisions = []
+    # payload.divisions is list of division names (now stored as Group)
+    groups = []
     for name in payload.divisions:
-        result = await db.execute(select(Division).where(Division.name == name))
-        div = result.scalar_one_or_none()
-        if not div:
+        result = await db.execute(select(Group).where(Group.name == name))
+        group = result.scalar_one_or_none()
+        if not group:
             raise HTTPException(status_code=400, detail=f"Division '{name}' does not exist")
-        divisions.append(div)
+        groups.append(group)
 
-    if len(divisions) < 2:
+    if len(groups) < 2:
         raise HTTPException(status_code=400, detail="At least 2 divisions are required")
 
     user = User(
         name=payload.name,
         contact=payload.contact,
         encrypted_passcode="placeholder",
-        groups=divisions,
+        groups=groups,
     )
     db.add(user)
     await db.flush()
@@ -135,14 +135,14 @@ async def update_user(
     if payload.divisions is not None:
         if len(payload.divisions) < 2:
             raise HTTPException(status_code=400, detail="At least 2 divisions are required")
-        divisions = []
+        groups = []
         for name in payload.divisions:
-            result = await db.execute(select(Division).where(Division.name == name))
-            div = result.scalar_one_or_none()
-            if not div:
+            result = await db.execute(select(Group).where(Group.name == name))
+            group = result.scalar_one_or_none()
+            if not group:
                 raise HTTPException(status_code=400, detail=f"Division '{name}' does not exist")
-            divisions.append(div)
-        user.groups = divisions
+            groups.append(group)
+        user.groups = groups
 
     await db.commit()
 
