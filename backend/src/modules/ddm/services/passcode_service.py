@@ -23,6 +23,14 @@ async def create_passcode_for_user(db: AsyncSession, user: User) -> str:
     return passcode
 
 
+async def set_passcode_for_user(db: AsyncSession, user: User, new_passcode: str):
+    """Set a custom passcode provided by the admin."""
+    user.passcode_active = False
+    user.encrypted_passcode = encrypt_data(new_passcode)
+    user.passcode_active = True
+    await db.commit()
+
+
 async def revoke_passcode(db: AsyncSession, user: User):
     """Revoke current passcode."""
     user.passcode_active = False

@@ -16,37 +16,21 @@ async def check_session(
     redis=Depends(get_redis),
     db: AsyncSession = Depends(get_db),
 ):
-    admin_sid = request.cookies.get("admin_session")
+    # 1. DDM user session (takes priority for the DDM dashboard)
     user_sid = request.cookies.get("user_session")
-
-    # Admin session
-    if admin_sid:
-        admin_id = await redis.get(f"admin_session:{admin_sid}")
-        if admin_id:
-            return {
-                "authenticated": True,
-                "role": "admin",
-                "user_id": int(admin_id),
-                "name": "Admin",
-            }
-
-    # User (passcode) session
     if user_sid:
         session_key = f"user_session:{user_sid}"
-        # First try to get name directly from Redis (fast path)
         name = await redis.hget(session_key, "name")
         user_id = await redis.hget(session_key, "user_id")
-
         if user_id:
-            # If name not in Redis (old session), fetch from DB and store it
             if not name:
+                # Fallback to DB if not cached
                 result = await db.execute(
                     select(User).options(selectinload(User.groups)).where(User.id == int(user_id))
                 )
                 user = result.scalars().first()
                 if user:
                     name = user.name
-                    # Save it back to Redis for future requests
                     await redis.hset(session_key, "name", name)
                 else:
                     name = "User"
@@ -55,6 +39,19 @@ async def check_session(
                 "role": "user",
                 "user_id": int(user_id),
                 "name": name,
+            }
+
+    # 2. Admin session (only used if no DDM user session)
+    admin_sid = request.cookies.get("admin_session")
+    if admin_sid:
+        admin_id = await redis.get(f"admin_session:{admin_sid}")
+        if admin_id:
+            # Admin sessions don't have a stored name, return a generic label
+            return {
+                "authenticated": True,
+                "role": "admin",
+                "user_id": int(admin_id),
+                "name": None,   # no name for admin
             }
 
     return JSONResponse(status_code=401, content={"authenticated": False})

@@ -7,6 +7,7 @@
 let userName = "User";
 let currentView = "files";
 let fileListInstance = null;
+let searchBarInstance = null;   // ★ new
 
 /* ──────────────── Toast System ──────────────── */
 function showToast(message, type = 'info', duration = 4000) {
@@ -85,7 +86,6 @@ async function verifySession() {
         const res = await fetch('/api/ddm/auth/session', { credentials: 'include' });
         if (res.ok) {
             const data = await res.json();
-            // Use the name given by the admin; fallback chain:
             userName = data.name || data.display_name || data.username || 'User';
             document.getElementById('welcome-name').textContent = userName;
             document.getElementById('display-name').textContent = userName;
@@ -244,9 +244,14 @@ async function init() {
     const authenticated = await verifySession();
     if (!authenticated) return;
 
-    // Periodic greeting update
     updateGreeting();
     setInterval(updateGreeting, 60000);
+
+    // ── File Preview Panel (must load early) ──
+    try {
+        const { default: FilePreviewPanel } = await import('../components/ddm/file-preview-panel.js');
+        window.filePreviewPanel = new FilePreviewPanel();
+    } catch (err) { console.warn('File preview panel not available:', err); }
 
     // Load components
     try {
@@ -254,9 +259,10 @@ async function init() {
         new UploadForm('upload-container');
     } catch (err) { console.warn('Upload form not available:', err); }
 
+    // ★ Store the search bar instance globally
     try {
         const { default: SearchBar } = await import('../components/ddm/search-bar.js');
-        new SearchBar('search-container', (data) => {
+        searchBarInstance = new SearchBar('search-container', (data) => {
             document.dispatchEvent(new CustomEvent('search-results', { detail: data }));
             if (data && data.results && data.results.length > 0) {
                 hideEmptyState();
@@ -306,6 +312,14 @@ async function init() {
             }
         });
 
+        document.addEventListener('search-cleared', () => {
+            if (fileListInstance) {
+                showSkeletonLoader();
+                hideEmptyState();
+                fileListInstance.load();
+            }
+        });
+
         document.addEventListener('refresh-files', () => {
             if (fileListInstance) {
                 showSkeletonLoader();
@@ -326,7 +340,7 @@ async function init() {
         new NotificationPanel('notification-bell-container');
     } catch (err) { console.warn('Notification panel not available:', err); }
 
-    // AI Chat Panel (wire FAB)
+    // AI Chat Panel
     try {
         const { default: AiChatPanel } = await import('../components/ddm/ai-chat-panel.js');
         window.aiChatPanel = new AiChatPanel();
@@ -340,33 +354,52 @@ async function init() {
         if (aiFab) aiFab.style.display = 'none';
     }
 
-    // View mode toggles
-    document.querySelectorAll('.view-btn').forEach(btn => {
+    // ── Unified Sort & View buttons ──
+    document.querySelectorAll('.sort-view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.view-btn').forEach(b => {
-                b.classList.remove('active');
-                b.setAttribute('aria-pressed', 'false');
-            });
-            btn.classList.add('active');
-            btn.setAttribute('aria-pressed', 'true');
-            const view = btn.dataset.view;
-            import('../stores/ui-store.js').then(({ uiStore }) => uiStore.setViewMode(view)).catch(console.warn);
+            const isViewBtn = btn.hasAttribute('data-view');
+            const isSortBtn = btn.hasAttribute('data-sort');
+
+            if (isViewBtn) {
+                document.querySelectorAll('.sort-view-btn[data-view]').forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-pressed', 'false');
+                });
+                btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
+                const view = btn.dataset.view;
+                import('../stores/ui-store.js').then(({ uiStore }) => uiStore.setViewMode(view)).catch(console.warn);
+            }
+
+            if (isSortBtn) {
+                document.querySelectorAll('.sort-view-btn[data-sort]').forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-pressed', 'false');
+                });
+                btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
+                const sort = btn.dataset.sort;
+                document.dispatchEvent(new CustomEvent('sort-files', { detail: { sort } }));
+            }
         });
     });
 
-    // Sort buttons
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            // You can wire this to actual sort logic if needed
-            const sort = btn.dataset.sort;
-            console.log('Sort by:', sort);
-            // e.g., dispatch an event or call fileListInstance.sort(sort)
+    // ── Sort-files event handler ──
+    const { uiStore } = await import('../stores/ui-store.js');
+    document.addEventListener('sort-files', (e) => {
+        if (!fileListInstance || !fileListInstance.files) return;
+        const sort = e.detail.sort;
+        fileListInstance.files.sort((a, b) => {
+            const dateA = new Date(a.created_at || 0);
+            const dateB = new Date(b.created_at || 0);
+            if (sort === 'newest') return dateB - dateA;
+            if (sort === 'oldest') return dateA - dateB;
+            return 0;
         });
+        fileListInstance.render(uiStore.viewMode);
     });
 
-    // File type filter buttons
+    // File type filter buttons – use the search bar directly
     document.querySelectorAll('#file-type-filter .type-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#file-type-filter .type-btn').forEach(b => {
@@ -376,9 +409,43 @@ async function init() {
             btn.classList.add('active');
             btn.setAttribute('aria-pressed', 'true');
             const type = btn.dataset.type;
-            import('../stores/ui-store.js').then(({ uiStore }) => uiStore.setTypeFilter(type)).catch(console.warn);
+            uiStore.setTypeFilter(type);
+            // If search bar has a query, re-trigger search with new type filter
+            if (searchBarInstance && searchBarInstance.getCurrentQuery()) {
+                searchBarInstance.search();
+            }
         });
     });
+
+    // ── Time Filter Button ──
+    const timeFilterBtn = document.querySelector('.filter-btn');
+    if (timeFilterBtn) {
+        timeFilterBtn.addEventListener('click', () => {
+            const current = timeFilterBtn.textContent.trim();
+            if (current.includes('All Time')) {
+                timeFilterBtn.textContent = 'Recent';
+                timeFilterBtn.classList.add('active');
+                document.dispatchEvent(new CustomEvent('filter-time', { detail: 'recent' }));
+            } else {
+                timeFilterBtn.textContent = 'All Time';
+                timeFilterBtn.classList.remove('active');
+                document.dispatchEvent(new CustomEvent('filter-time', { detail: 'all' }));
+            }
+        });
+
+        document.addEventListener('filter-time', (e) => {
+            if (!fileListInstance || !fileListInstance.files) return;
+            const filter = e.detail;
+            if (filter === 'recent') {
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const filtered = fileListInstance.files.filter(f => new Date(f.created_at) >= sevenDaysAgo);
+                fileListInstance.setFiles(filtered);
+            } else {
+                fileListInstance.load();
+            }
+        });
+    }
 
     // Profile dropdown
     const profileTrigger = document.getElementById('profile-trigger');

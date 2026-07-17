@@ -24,9 +24,12 @@ async function verifySession() {
 const titleEl = document.getElementById("section-title");
 const contentEl = document.getElementById("section-content");
 const sectionTitles = {
-    users: "User Management", groups: "Group Management",
-    files: "File Management", "upload-queue": "Upload Request Queue",
-    announcements: "Announcement Management", "audit-log": "Audit Log",
+    users: "User Management",
+    divisions: "Division Management",            // was groups
+    files: "File Management",
+    "upload-queue": "Upload Request Queue",
+    announcements: "Announcement Management",
+    "audit-log": "Audit Log",
     settings: "System Settings"
 };
 
@@ -37,6 +40,10 @@ async function loadComponent(section) {
             case "users": {
                 const { UserTable } = await import("../components/ddm/admin/user-table.js");
                 return new UserTable("section-content");
+            }
+            case "divisions": {
+                const { DivisionManager } = await import("../components/ddm/admin/division-manager.js");
+                return new DivisionManager("section-content");
             }
             case "files": {
                 const { FileTable } = await import("../components/ddm/admin/file-table.js");
@@ -57,10 +64,6 @@ async function loadComponent(section) {
             case "settings": {
                 const { SettingsPanel } = await import("../components/ddm/admin/settings-panel.js");
                 return new SettingsPanel("section-content");
-            }
-            case "groups": {
-                contentEl.innerHTML = `<p class="text-dim">Group management placeholder.</p>`;
-                return null;
             }
             default: return null;
         }

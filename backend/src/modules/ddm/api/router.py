@@ -7,7 +7,7 @@ router = APIRouter(prefix="/ddm")
 
 # Admin sub-routers
 from backend.src.modules.ddm.api.admin.users import router as admin_users_router
-from backend.src.modules.ddm.api.admin.groups import router as admin_groups_router
+from backend.src.modules.ddm.api.admin.divisions import router as admin_groups_router
 from backend.src.modules.ddm.api.admin.files import router as admin_files_router
 from backend.src.modules.ddm.api.admin.upload_requests import router as admin_upload_router
 from backend.src.modules.ddm.api.admin.announcements import router as admin_announcements_router

@@ -1,18 +1,18 @@
 // RCA/frontend/src/components/ddm/search-bar.js
 import { searchService } from "../../services/ddm/search-service.js";
-import { sessionStore } from "../../stores/session-store.js";
+import { uiStore } from "../../stores/ui-store.js";
 import { showToast } from "../ui/toast.js";
 
 export default class SearchBar {
   constructor(containerId, onResults) {
     this.container = document.getElementById(containerId);
     this.onResults = onResults;
+    this.debounceTimer = null;
     this.render();
     this.attachEvents();
-    
-    // Listen for auto-search triggers (popular tags)
+
     document.addEventListener('auto-search', (e) => {
-        if(this.searchInput) {
+        if (this.searchInput) {
             this.searchInput.value = e.detail.query;
             this.search();
         }
@@ -24,33 +24,48 @@ export default class SearchBar {
     this.container.innerHTML = `
       <div class="search-wrapper">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="search-input" placeholder="Search files by name, type, or keyword...">
-        <button id="search-button"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        <input type="text" id="search-input" placeholder="Search files by name, type, or keyword..." autocomplete="off">
       </div>
     `;
   }
 
   attachEvents() {
     this.searchInput = document.getElementById("search-input");
-    this.searchBtn = document.getElementById("search-button");
+    if (!this.searchInput) return;
 
-    if(this.searchBtn) {
-        this.searchBtn.addEventListener("click", () => this.search());
-    }
-    if(this.searchInput) {
-        this.searchInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") this.search();
-        });
-    }
+    this.searchInput.addEventListener("input", () => {
+      const query = this.searchInput.value.trim();
+      if (!query) {
+        clearTimeout(this.debounceTimer);
+        document.dispatchEvent(new CustomEvent('search-cleared'));
+        return;
+      }
+      this.debounceSearch();
+    });
+
+    this.searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        clearTimeout(this.debounceTimer);
+        this.search();
+      }
+    });
+  }
+
+  debounceSearch() {
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => this.search(), 300);
   }
 
   async search(page = 1) {
     const query = this.searchInput.value.trim();
-    if (!query) return;
+    if (!query) {
+        document.dispatchEvent(new CustomEvent('search-cleared'));
+        return;
+    }
     try {
-      const data = await searchService.search(query, sessionStore.contentSearchEnabled, page, 20);
-      // The service returns the full response object { results, total, ... }
-      this.onResults(data);
+      const type = uiStore.typeFilter !== 'all' ? uiStore.typeFilter : '';
+      const data = await searchService.search(query, false, page, 20, type);
+      if (this.onResults) this.onResults(data);
     } catch (err) {
       showToast("Search failed", "error");
     }
@@ -58,6 +73,10 @@ export default class SearchBar {
 
   setPage(page) {
     this.search(page);
+  }
+
+  getCurrentQuery() {
+    return this.searchInput ? this.searchInput.value.trim() : '';
   }
 }
 // end of RCA/frontend/src/components/ddm/search-bar.js

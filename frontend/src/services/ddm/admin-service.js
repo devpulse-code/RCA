@@ -1,20 +1,17 @@
 // RCA/frontend/src/services/ddm/admin-service.js
 import { apiClient } from "../api-client.js";
 
-// --------------- Utility to ensure an array from API response ---------------
 function asArray(response) {
   if (Array.isArray(response)) return response;
   if (response && typeof response === 'object') {
-    // Common wrapping keys
     for (const key of ['data', 'files', 'results', 'items']) {
       if (Array.isArray(response[key])) return response[key];
     }
   }
-  // Fallback: return empty array so .map() never fails
   return [];
 }
 
-// --------------- Users ---------------
+// Users
 export async function getUsers() {
   return asArray(await apiClient.get("/ddm/admin/users/"));
 }
@@ -30,17 +27,20 @@ export async function deleteUser(id) {
 export async function revokePasscode(id) {
   return apiClient.post(`/ddm/admin/users/${id}/revoke-passcode`);
 }
+export async function setPasscode(id, passcode) {
+  return apiClient.post(`/ddm/admin/users/${id}/set-passcode`, { passcode });
+}
 export async function bulkRevokePasscodes(ids) {
   return apiClient.post("/ddm/admin/users/bulk-revoke-passcodes", ids);
 }
 
-// --------------- Groups ---------------
-export async function fetchGroups() {
-  const data = await apiClient.get("/ddm/admin/groups/");
+// Divisions (was groups)
+export async function fetchDivisions() {
+  const data = await apiClient.get("/ddm/admin/divisions/");
   return asArray(data);
 }
 
-// --------------- Files (admin) ---------------
+// Files (admin)
 export async function getFiles() {
   const data = await apiClient.get("/ddm/admin/");
   return asArray(data);
@@ -59,16 +59,13 @@ export async function uploadFile(formData) {
   });
   if (!response.ok) {
     let msg = `Upload failed (${response.status})`;
-    try {
-      const err = await response.json();
-      msg = err.detail || err.message || msg;
-    } catch (_) {}
+    try { const err = await response.json(); msg = err.detail || msg; } catch (_) {}
     throw new Error(msg);
   }
   return response.json();
 }
 
-// --------------- Upload requests ---------------
+// Upload requests
 export async function getUploadRequests() {
   return apiClient.get("/ddm/admin/upload-requests");
 }
@@ -78,8 +75,11 @@ export async function approveUploadRequest(fileId) {
 export async function rejectUploadRequest(fileId) {
   await apiClient.post(`/ddm/admin/upload-requests/${fileId}/reject`);
 }
+export async function previewUploadRequest(fileId) {
+  // not used directly; preview URL is composed in component
+}
 
-// --------------- Announcements ---------------
+// Announcements
 export async function fetchAnnouncements() {
   return apiClient.get("/ddm/admin/announcements/");
 }
@@ -96,7 +96,7 @@ export async function bulkDeleteAnnouncements(ids) {
   await apiClient.delete("/ddm/admin/announcements/bulk", { data: ids });
 }
 
-// --------------- Settings ---------------
+// Settings
 export async function fetchSettings() {
   return apiClient.get("/ddm/admin/settings");
 }
@@ -104,8 +104,16 @@ export async function updateSettings(data) {
   return apiClient.put("/ddm/admin/settings", data);
 }
 
-// --------------- Audit Log ---------------
+// Audit Log
 export async function fetchAuditLogs(params = {}) {
   return apiClient.get("/ddm/admin/audit-log", { params });
+}
+
+export async function createDivision(name) {
+  return apiClient.post(`/ddm/admin/divisions/?name=${encodeURIComponent(name)}`);
+}
+
+export async function deleteDivision(id) {
+  await apiClient.delete(`/ddm/admin/divisions/${id}`);
 }
 // end of RCA/frontend/src/services/ddm/admin-service.js

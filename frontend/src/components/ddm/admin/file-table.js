@@ -1,13 +1,15 @@
 // RCA/frontend/src/components/ddm/admin/file-table.js
 import * as AdminService from "../../../services/ddm/admin-service.js";
 import { showToast } from "../../ui/toast.js";
-import { openModal } from "../../ui/modal.js";
+import { openModal, confirmModal } from "../../ui/modal.js";
+import FilePreviewPanel from "../file-preview-panel.js";
 
 export class FileTable {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.files = [];
     this.selected = new Set();
+    this.previewPanel = new FilePreviewPanel();
     this.load();
   }
 
@@ -56,6 +58,7 @@ export class FileTable {
                 <td>${f.size ? (f.size/1024).toFixed(1)+' KB' : ''}</td>
                 <td>${f.status}</td>
                 <td>
+                  <button class="preview-file-btn btn btn-sm btn-info" data-id="${f.id}">Preview</button>
                   <button class="delete-file-btn btn btn-sm btn-danger" data-id="${f.id}">Delete</button>
                 </td>
               </tr>
@@ -75,32 +78,60 @@ export class FileTable {
       this.updateSelection();
     });
     this.container.querySelectorAll(".file-checkbox").forEach(cb => cb.addEventListener("change", () => this.updateSelection()));
-    this.container.querySelectorAll(".delete-file-btn").forEach(btn => {
-      btn.addEventListener("click", async () => {
+
+    this.container.querySelectorAll(".preview-file-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
         const id = parseInt(btn.dataset.id);
-        if (confirm("Delete this file?")) {
+        const file = this.files.find(f => f.id == id);
+        if (file) {
+          // Use the download URL; the preview panel will handle it
+          const downloadUrl = `/api/ddm/files/${file.id}/download`;
+          this.previewPanel.open({ id: file.id, name: file.name, downloadUrl });
+        }
+      });
+    });
+
+    this.container.querySelectorAll(".delete-file-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.dataset.id);
+        const file = this.files.find(f => f.id == id);
+        confirmModal({
+          title: "Delete File",
+          message: `Are you sure you want to permanently delete "${file.name}"?`,
+          confirmText: "Delete",
+          danger: true,
+          onConfirm: async () => {
+            try {
+              await AdminService.deleteFile(id);
+              showToast("File deleted", "success");
+              this.load();
+            } catch (e) {
+              showToast(e.message, "error");
+            }
+          },
+        });
+      });
+    });
+
+    document.getElementById("btn-bulk-delete")?.addEventListener("click", () => {
+      const ids = Array.from(this.selected);
+      if (ids.length === 0) return;
+      confirmModal({
+        title: "Bulk Delete Files",
+        message: `Are you sure you want to permanently delete ${ids.length} selected files?`,
+        confirmText: "Delete All",
+        danger: true,
+        onConfirm: async () => {
           try {
-            await AdminService.deleteFile(id);
-            showToast("File deleted", "success");
+            await AdminService.bulkDeleteFiles(ids);
+            showToast("Files deleted", "success");
+            this.selected.clear();
             this.load();
           } catch (e) {
             showToast(e.message, "error");
           }
-        }
+        },
       });
-    });
-    document.getElementById("btn-bulk-delete")?.addEventListener("click", async () => {
-      const ids = Array.from(this.selected);
-      if (ids.length && confirm(`Delete ${ids.length} files?`)) {
-        try {
-          await AdminService.bulkDeleteFiles(ids);
-          showToast("Files deleted", "success");
-          this.selected.clear();
-          this.load();
-        } catch (e) {
-          showToast(e.message, "error");
-        }
-      }
     });
   }
 
@@ -114,9 +145,8 @@ export class FileTable {
   async showUploadModal() {
     let groups = [];
     try {
-      const data = await AdminService.fetchGroups();
-      groups = Array.isArray(data) ? data : [];
-    } catch (e) { /* ignore */ }
+      groups = await AdminService.fetchDivisions();   // now divisions
+    } catch (e) {}
 
     const groupOptions = groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
 
@@ -124,30 +154,24 @@ export class FileTable {
       <form id="upload-file-form" class="space-y-4">
         <label class="form-label">File Name</label>
         <input type="text" name="name" required class="form-input" placeholder="e.g. Project Alpha">
-
         <label class="form-label">Description (optional)</label>
         <textarea name="description" class="form-textarea" placeholder="Brief description..."></textarea>
-
         <label class="form-label">Storage Type</label>
         <select name="storage_type" id="storage-type-select" class="form-select">
           <option value="local">Local File</option>
           <option value="terabox">Terabox Link</option>
         </select>
-
         <div id="local-file-section">
           <label class="form-label">Choose File</label>
           <input type="file" name="file" class="form-input">
         </div>
-
         <div id="terabox-section" class="hidden">
           <label class="form-label">Terabox Share Link</label>
           <input type="text" name="terabox_url" class="form-input" placeholder="https://...">
         </div>
-
-        <label class="form-label">Target Groups</label>
+        <label class="form-label">Target Divisions</label>
         <select name="groups" multiple class="form-select">${groupOptions}</select>
         <p class="text-xs text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-
         <button type="submit" class="btn btn-primary w-full">Upload</button>
       </form>
     `;
@@ -174,10 +198,8 @@ export class FileTable {
         formData.append("name", form.name.value);
         formData.append("description", form.description.value || "");
         formData.append("storage_type", form.storage_type.value);
-
         const selectedGroups = Array.from(form.groups.selectedOptions).map(o => parseInt(o.value, 10));
         formData.append("groups", JSON.stringify(selectedGroups));
-
         if (form.storage_type.value === "local") {
           const fileInput = form.file;
           if (!fileInput.files.length) {
@@ -193,7 +215,6 @@ export class FileTable {
           }
           formData.append("terabox_url", url);
         }
-
         try {
           await AdminService.uploadFile(formData);
           showToast("File uploaded successfully", "success");

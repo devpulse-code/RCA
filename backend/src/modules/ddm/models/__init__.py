@@ -1,17 +1,18 @@
 # RCA/backend/src/modules/ddm/models/__init__.py
 from .base import TimestampMixin
 from .user import User
-from .group import Group
+from .division import Division            # was group
 from .admin import Admin
-from .file import File                  # ← enabled
-from .announcement import Announcement  # ← enabled
+from .file import File
+from .announcement import Announcement
 from .audit_log import AuditLog
 from .system_setting import SystemSetting
 from .notification import Notification
+
 __all__ = [
     "TimestampMixin",
     "User",
-    "Group",
+    "Division",
     "Admin",
     "File",
     "Announcement",
@@ -19,4 +20,4 @@ __all__ = [
     "SystemSetting",
     "Notification"
 ]
-# end of RCA/backend/src/modules/ddm/models/__init__.pyfrom .notification import Notification
+# end of RCA/backend/src/modules/ddm/models/__init__.py

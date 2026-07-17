@@ -7,9 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from backend.src.core.db.database import get_db
 from backend.src.modules.ddm.models.user import User
-from backend.src.modules.ddm.models.group import Group
-from backend.src.modules.ddm.schemas.user import UserCreate, UserUpdate, UserOut, PasscodeResponse
-from backend.src.modules.ddm.services.passcode_service import create_passcode_for_user, revoke_passcode, get_passcode
+from backend.src.modules.ddm.models.division import Division           # renamed
+from backend.src.modules.ddm.schemas.user import (
+    UserCreate, UserUpdate, UserOut, PasscodeResponse, SetPasscodeRequest
+)
+from backend.src.modules.ddm.services.passcode_service import (
+    create_passcode_for_user, revoke_passcode, get_passcode, set_passcode_for_user
+)
 from backend.src.modules.ddm.services.audit_service import log_audit
 from backend.src.modules.ddm.api.deps import get_current_admin
 
@@ -24,10 +28,7 @@ async def list_users(
     try:
         result = await db.execute(select(User).options(selectinload(User.groups)))
         users = result.scalars().all()
-    except Exception as e:
-        # If the relationship or table isn't ready yet, return an empty list
-        # This prevents the admin panel from breaking when this endpoint is used
-        # only for session verification.
+    except Exception:
         return []
 
     out = []
@@ -37,7 +38,7 @@ async def list_users(
                 id=u.id,
                 name=u.name,
                 contact=u.contact,
-                groups=[g.name for g in u.groups],
+                divisions=[g.name for g in u.groups],   # now divisions
                 passcode_active=u.passcode_active,
                 created_at=str(u.created_at),
                 updated_at=str(u.updated_at),
@@ -53,19 +54,23 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    groups = []
-    for name in payload.groups:
-        result = await db.execute(select(Group).where(Group.name == name))
-        group = result.scalar_one_or_none()
-        if not group:
-            raise HTTPException(status_code=400, detail=f"Group '{name}' does not exist")
-        groups.append(group)
+    # payload.divisions is list of division names
+    divisions = []
+    for name in payload.divisions:
+        result = await db.execute(select(Division).where(Division.name == name))
+        div = result.scalar_one_or_none()
+        if not div:
+            raise HTTPException(status_code=400, detail=f"Division '{name}' does not exist")
+        divisions.append(div)
+
+    if len(divisions) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 divisions are required")
 
     user = User(
         name=payload.name,
         contact=payload.contact,
         encrypted_passcode="placeholder",
-        groups=groups,
+        groups=divisions,
     )
     db.add(user)
     await db.flush()
@@ -78,7 +83,7 @@ async def create_user(
         admin_username=admin.username,
         target_type="user",
         target_id=str(user.id),
-        details={"name": user.name, "groups": payload.groups},
+        details={"name": user.name, "divisions": payload.divisions},
         ip_address=request.client.host,
     )
 
@@ -101,7 +106,7 @@ async def get_user(
         id=user.id,
         name=user.name,
         contact=user.contact,
-        groups=[g.name for g in user.groups],
+        divisions=[g.name for g in user.groups],
         passcode_active=user.passcode_active,
         created_at=str(user.created_at),
         updated_at=str(user.updated_at),
@@ -116,7 +121,6 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
-    # 1. Fetch user with eagerly loaded groups (so we can modify without lazy loads)
     result = await db.execute(
         select(User).where(User.id == user_id).options(selectinload(User.groups))
     )
@@ -124,31 +128,29 @@ async def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 2. Apply changes
     if payload.name is not None:
         user.name = payload.name
     if payload.contact is not None:
         user.contact = payload.contact
-    if payload.groups is not None:
-        groups = []
-        for name in payload.groups:
-            result = await db.execute(select(Group).where(Group.name == name))
-            group = result.scalar_one_or_none()
-            if not group:
-                raise HTTPException(status_code=400, detail=f"Group '{name}' does not exist")
-            groups.append(group)
-        user.groups = groups
+    if payload.divisions is not None:
+        if len(payload.divisions) < 2:
+            raise HTTPException(status_code=400, detail="At least 2 divisions are required")
+        divisions = []
+        for name in payload.divisions:
+            result = await db.execute(select(Division).where(Division.name == name))
+            div = result.scalar_one_or_none()
+            if not div:
+                raise HTTPException(status_code=400, detail=f"Division '{name}' does not exist")
+            divisions.append(div)
+        user.groups = divisions
 
-    # 3. Commit changes
     await db.commit()
 
-    # 4. Re-query a fresh object with eager loaded groups (safe to build response)
     result = await db.execute(
         select(User).where(User.id == user_id).options(selectinload(User.groups))
     )
     updated_user = result.scalar_one()
 
-    # 5. Audit log (safe, no lazy loads needed)
     await log_audit(
         db,
         action="user_updated",
@@ -159,12 +161,11 @@ async def update_user(
         ip_address=request.client.host,
     )
 
-    # 6. Build and return the response
     return UserOut(
         id=updated_user.id,
         name=updated_user.name,
         contact=updated_user.contact,
-        groups=[g.name for g in updated_user.groups],
+        divisions=[g.name for g in updated_user.groups],
         passcode_active=updated_user.passcode_active,
         created_at=str(updated_user.created_at),
         updated_at=str(updated_user.updated_at),
@@ -206,9 +207,7 @@ async def revoke_user_passcode(
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-
     new_passcode = await create_passcode_for_user(db, user)
-
     await log_audit(
         db,
         action="passcode_revoked",
@@ -218,8 +217,31 @@ async def revoke_user_passcode(
         details={"name": user.name},
         ip_address=request.client.host,
     )
-
     return PasscodeResponse(user_id=user.id, passcode=new_passcode)
+
+
+@router.post("/{user_id}/set-passcode", response_model=PasscodeResponse)
+async def set_user_passcode(
+    user_id: int,
+    payload: SetPasscodeRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await set_passcode_for_user(db, user, payload.passcode)
+    await log_audit(
+        db,
+        action="passcode_set",
+        admin_username=admin.username,
+        target_type="user",
+        target_id=str(user_id),
+        details={"name": user.name},
+        ip_address=request.client.host,
+    )
+    return PasscodeResponse(user_id=user.id, passcode=payload.passcode)
 
 
 @router.post("/bulk/revoke-passcodes", response_model=list[PasscodeResponse])

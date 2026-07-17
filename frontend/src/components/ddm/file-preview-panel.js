@@ -10,49 +10,64 @@ export default class FilePreviewPanel {
     if (!file) return;
     this.close();
 
+    const downloadUrl = file.downloadUrl || `/api/ddm/files/${file.id}/download`;
+
     this.overlay = document.createElement("div");
     this.overlay.className = "file-preview-overlay";
     this.overlay.innerHTML = `
       <div class="file-preview-panel">
         <div class="file-preview-header">
-          <span class="font-semibold text-sm">${file.name}</span>
-          <div>
-            <a href="/api/ddm/files/${file.id}/download" class="btn btn-primary btn-sm mr-2">Download</a>
-            <button class="btn btn-secondary btn-sm close-preview">✕</button>
+          <div class="file-preview-header-left">
+            <i class="fa-regular fa-file" aria-hidden="true"></i>
+            <span class="file-preview-name">${file.name || 'Unknown File'}</span>
+          </div>
+          <div class="file-preview-header-actions">
+            <a href="${downloadUrl}" class="preview-download-btn" download>
+              <i class="fa-solid fa-download" aria-hidden="true"></i>
+              Download
+            </a>
+            <button class="preview-close-btn" aria-label="Close preview">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
           </div>
         </div>
         <div class="file-preview-content">
-          ${this._renderContent(file)}
+          ${this._renderContent(file, downloadUrl)}
         </div>
       </div>
     `;
 
     document.body.appendChild(this.overlay);
 
-    this.overlay.querySelector(".close-preview").addEventListener("click", () => this.close());
+    this.overlay.querySelector(".preview-close-btn").addEventListener("click", () => this.close());
     this.overlay.addEventListener("click", (e) => {
       if (e.target === this.overlay) this.close();
     });
     document.addEventListener("keydown", this._escHandler);
   }
 
-  _renderContent(file) {
-    const url = `/api/ddm/files/${file.id}/download`;
+  _renderContent(file, url) {
     const ext = (file.name || '').split('.').pop().toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
-      return `<img src="${url}" alt="${file.name}" />`;
+      return `<img src="${url}" alt="${file.name}" class="preview-image" />`;
     }
     if (['mp4', 'webm', 'ogg'].includes(ext)) {
-      return `<video controls autoplay style="max-width:100%;max-height:100%"><source src="${url}" type="video/${ext}"></video>`;
+      return `<video controls autoplay class="preview-video"><source src="${url}" type="video/${ext}"></video>`;
     }
     if (ext === 'pdf') {
-      return `<iframe src="${url}#view=FitH" width="100%" height="100%"></iframe>`;
+      return `<iframe src="${url}#view=FitH" class="preview-iframe" width="100%" height="100%"></iframe>`;
     }
-    // For other types, show placeholder
     return `
       <div class="file-preview-placeholder">
-        <p>No preview available for this file type.</p>
-        <a href="${url}" class="btn btn-primary">Download</a>
+        <div class="preview-placeholder-icon">
+          <i class="fa-regular fa-file" aria-hidden="true"></i>
+        </div>
+        <h3>No Preview Available</h3>
+        <p>This file type cannot be previewed in the browser.</p>
+        <a href="${url}" class="preview-download-btn preview-download-btn--large" download>
+          <i class="fa-solid fa-download" aria-hidden="true"></i>
+          Download File
+        </a>
       </div>
     `;
   }

@@ -20,5 +20,7 @@ class User(Base, TimestampMixin):
     contact = Column(String, nullable=True)
     encrypted_passcode = Column(String, nullable=False)
     passcode_active = Column(Boolean, default=True)
-    groups = relationship("Group", secondary=user_group_association, back_populates="users")
+
+    # Renamed relationship: groups → divisions
+    groups = relationship("Division", secondary=user_group_association, back_populates="users")
 # end of RCA/backend/src/modules/ddm/models/user.py

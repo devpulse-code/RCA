@@ -42,12 +42,13 @@ const getFileIcon = (file) => {
     if (['pdf'].includes(ext)) return 'fa-regular fa-file-pdf';
     if (['pptx', 'ppt'].includes(ext)) return 'fa-regular fa-file-powerpoint';
     if (['doc', 'docx'].includes(ext)) return 'fa-regular fa-file-word';
-    if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) return 'fa-solid fa-play';
+    if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) return 'fa-solid fa-video';
     if (['xls', 'xlsx'].includes(ext)) return 'fa-regular fa-file-excel';
+    if (['mp3', 'wav', 'flac'].includes(ext)) return 'fa-solid fa-music';
     return 'fa-regular fa-file';
 };
 
-export function fileCard(file, viewMode = 'grid') {
+export function fileCard(file, viewMode = 'grid', selectedFileIds = new Set()) {
     const type = getFileType(file);
     const ext = (file.name || '').split('.').pop().toUpperCase();
     const size = formatFileSize(file.size);
@@ -59,35 +60,60 @@ export function fileCard(file, viewMode = 'grid') {
     const isVideo = type === 'Video';
     const thumbnailUrl = isImage ? `/api/ddm/files/${fileId}/download?inline=true` : null;
     const videoUrl = isVideo ? `/api/ddm/files/${fileId}/download?inline=true` : null;
+    const isChecked = selectedFileIds.has(fileId);
 
     if (viewMode === 'list') {
-        // Horizontal list row
+        // ── Redesigned Horizontal List Row ──
         const bgStyle = thumbnailUrl
             ? `background-image: url('${thumbnailUrl}'); background-size: cover; background-position: center;`
-            : `background-color: ${badgeColor}22;`;
-        const innerIcon = !thumbnailUrl ? `<i class="${icon}" style="font-size:20px; color:${badgeColor}"></i>` : '';
-        const videoTag = videoUrl ? `<video muted loop preload="none" src="${videoUrl}" style="display:none;"></video>` : '';
+            : '';
+        const iconCircleStyle = thumbnailUrl
+            ? 'display:none;'
+            : `background-color: ${badgeColor}18; color: ${badgeColor};`;
+
         return `
             <div class="file-list-row" data-file-id="${fileId}">
+                <div class="file-list-checkbox-cell">
+                    <label class="file-checkbox-wrapper" data-file-id="${fileId}" aria-label="Select file">
+                        <input type="checkbox" class="file-select-checkbox" data-file-id="${fileId}" ${isChecked ? 'checked' : ''}>
+                        <span class="file-checkbox-custom ${isChecked ? 'checked' : ''}">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        </span>
+                    </label>
+                </div>
                 <div class="file-list-thumb" style="${bgStyle}">
-                    ${innerIcon}
-                    ${isVideo ? `<div class="play-overlay"><i class="fa-solid fa-play"></i></div>` : ''}
-                    ${videoTag}
+                    <div class="file-list-icon-circle" style="${iconCircleStyle}">
+                        <i class="${icon}" aria-hidden="true"></i>
+                    </div>
+                    ${isVideo ? `<div class="play-overlay-list"><i class="fa-solid fa-play"></i></div>` : ''}
+                    ${videoUrl ? `<video muted loop preload="none" src="${videoUrl}" style="display:none;"></video>` : ''}
                 </div>
                 <div class="file-list-info">
                     <div class="file-list-name" title="${file.name || ''}">${file.name || ''}</div>
-                    <div class="file-list-meta">${type} - ${size} · ${date}</div>
+                    <div class="file-list-meta">
+                        <span class="file-list-type-badge" style="background: ${badgeColor}18; color: ${badgeColor};">
+                            ${type}
+                        </span>
+                        <span>${size}</span>
+                        <span class="file-list-date">${date}</span>
+                    </div>
                 </div>
                 <div class="file-list-actions">
-                    <button class="action-preview" data-file-id="${fileId}" title="Preview"><i class="fa-solid fa-eye"></i></button>
-                    <button class="action-download" data-file-id="${fileId}" title="Download"><i class="fa-solid fa-download"></i></button>
-                    <button class="action-ai" data-file-id="${fileId}" title="Ask AI"><i class="fa-solid fa-robot"></i></button>
+                    <button class="file-list-action-btn action-preview" data-file-id="${fileId}" title="Preview" aria-label="Preview">
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    </button>
+                    <button class="file-list-action-btn action-download" data-file-id="${fileId}" title="Download" aria-label="Download">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    </button>
+                    <button class="file-list-action-btn action-ai" data-file-id="${fileId}" title="Ask AI" aria-label="Ask AI about this file">
+                        <i class="fa-solid fa-robot" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         `;
     }
 
-    // Default grid card
+    // ── Default Grid Card ──
     const backgroundStyle = thumbnailUrl
         ? `background-image: url('${thumbnailUrl}'); background-size: cover; background-position: center;`
         : `background-color: ${badgeColor}22;`;
@@ -107,6 +133,12 @@ export function fileCard(file, viewMode = 'grid') {
                 ${bigIcon}
                 ${videoElement}
                 <span class="file-type-badge" style="background: ${badgeColor};"><i class="${icon}"></i> ${ext}</span>
+                <label class="file-checkbox-wrapper file-card-checkbox" data-file-id="${fileId}" aria-label="Select file">
+                    <input type="checkbox" class="file-select-checkbox" data-file-id="${fileId}" ${isChecked ? 'checked' : ''}>
+                    <span class="file-checkbox-custom ${isChecked ? 'checked' : ''}">
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                    </span>
+                </label>
             </div>
             <div class="file-info">
                 <div class="file-title" title="${file.name || ''}">${file.name || ''}</div>
@@ -115,11 +147,11 @@ export function fileCard(file, viewMode = 'grid') {
                         <span>${type} - ${size}</span>
                         <span style="color:var(--text-muted);">${date}</span>
                     </div>
-                    <button class="kebab-menu" data-file-id="${fileId}"><i class="fa-solid fa-ellipsis"></i></button>
+                    <button class="kebab-menu" data-file-id="${fileId}" aria-label="More actions"><i class="fa-solid fa-ellipsis"></i></button>
                     <div class="file-actions-dropdown" data-file-id="${fileId}">
-                        <button class="action-preview">Preview</button>
-                        <button class="action-download">Download</button>
-                        <button class="action-ai">Ask AI</button>
+                        <button class="action-preview" data-file-id="${fileId}">Preview</button>
+                        <button class="action-download" data-file-id="${fileId}">Download</button>
+                        <button class="action-ai" data-file-id="${fileId}">Ask AI</button>
                     </div>
                 </div>
             </div>

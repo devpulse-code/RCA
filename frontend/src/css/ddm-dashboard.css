@@ -1,9 +1,4 @@
-/* ============================================================
-   RCA/frontend/src/css/ddm-dashboard.css
-   Complete redesign with unified sort/view group, notification,
-   AI chat, etc. - Reordered for clarity and maintainability
-   ============================================================ */
-
+/* RCA/frontend/src/css/ddm-dashboard.css */
 /* ──────────────── 1. Design Tokens (Custom Properties) ──────────────── */
 :root {
     --bg-primary: #fafafa;
@@ -48,7 +43,7 @@
     --text-xs: 0.75rem;
     --text-sm: 0.8125rem;
     --text-base: 0.9375rem;
-    --text-lg: 1.0625rem;
+    --text-lg: 1.2625rem;
     --text-xl: 1.25rem;
     --text-2xl: 1.5rem;
     --text-3xl: 1.875rem;
@@ -395,7 +390,7 @@ body {
 }
 
 .welcome-name-accent {
-    background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 60%, #ec4899 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #ee484e 60%, #033d60 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -518,8 +513,8 @@ body {
     background: var(--bg-card);
     cursor: pointer;
     transition: all var(--duration-normal) var(--ease-out-expo);
-    height: 100%;
-    min-height: 280px;
+    height: 85%;
+    min-height: 180px;
     box-shadow: var(--shadow-xs);
     user-select: none;
 }
@@ -1395,3 +1390,479 @@ body {
         display: none;
     }
 }
+/* RCA/frontend/src/css/ddm-dashboard.css — new styles appended */
+
+/* ──────────────── 17. List View Redesigned (Rows) ──────────────── */
+.file-list-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.file-list-icon-circle {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    border-radius: var(--radius-sm);
+}
+
+.file-list-icon-circle i {
+    font-size: 22px;
+}
+
+.play-overlay-list {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 28px;
+    background: rgba(255,255,255,0.94);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-primary);
+    font-size: 11px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.file-list-row {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    gap: 14px;
+    transition: all var(--duration-fast) var(--ease-out-expo);
+    cursor: pointer;
+    animation: cardAppear 0.35s var(--ease-out-expo) both;
+    position: relative;
+}
+.file-list-row:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-color);
+    background: var(--bg-card-hover);
+    transform: translateX(2px);
+}
+
+.file-list-checkbox-cell {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.file-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-list-name {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+}
+
+.file-list-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.file-list-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.file-list-date {
+    color: var(--text-muted);
+}
+
+.file-list-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.file-list-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast) var(--ease-in-out);
+    font-size: 14px;
+}
+.file-list-action-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--accent);
+}
+.file-list-action-btn.action-download:hover {
+    color: var(--success);
+}
+
+/* ──────────────── 18. Checkbox Styling ──────────────── */
+.file-checkbox-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.file-checkbox-wrapper input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.file-checkbox-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast) var(--ease-in-out);
+    background: var(--bg-card);
+    flex-shrink: 0;
+}
+
+.file-checkbox-custom i {
+    font-size: 10px;
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: all var(--duration-fast) var(--ease-in-out);
+}
+.file-checkbox-custom.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.file-checkbox-custom.checked i {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Grid card checkbox */
+.file-card-checkbox {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+}
+.file-card-checkbox .file-checkbox-custom {
+    background: rgba(0,0,0,0.35);
+    border-color: rgba(255,255,255,0.4);
+    backdrop-filter: blur(4px);
+}
+.file-card-checkbox .file-checkbox-custom.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.file-image:hover .file-card-checkbox .file-checkbox-custom,
+.file-image:focus-within .file-card-checkbox .file-checkbox-custom {
+    opacity: 1;
+}
+
+/* ──────────────── 19. Bulk Action Bar ──────────────── */
+.bulk-action-bar {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    padding: 8px 20px;
+    box-shadow: var(--shadow-xl), 0 4px 24px var(--accent-glow);
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.3s var(--ease-out-expo), opacity 0.3s var(--ease-out-expo);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.bulk-action-bar.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.bulk-action-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.bulk-action-count {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.bulk-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all var(--duration-fast) var(--ease-out-expo);
+    font-family: var(--font-sans);
+    white-space: nowrap;
+}
+
+.bulk-download-btn {
+    background: var(--accent);
+    color: #fff;
+}
+.bulk-download-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-button);
+    transform: translateY(-1px);
+}
+
+.bulk-deselect-btn {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+.bulk-deselect-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+/* ──────────────── 20. Preview Panel Redesign ──────────────── */
+.file-preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s var(--ease-out-expo);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.file-preview-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    width: 90vw;
+    max-width: 960px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    animation: scaleIn 0.25s var(--ease-out-expo);
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.file-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+}
+
+.file-preview-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.file-preview-header-left i {
+    color: var(--text-muted);
+    font-size: 18px;
+}
+
+.file-preview-name {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+}
+
+.file-preview-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.preview-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all var(--duration-fast) var(--ease-out-expo);
+}
+.preview-download-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-button);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.preview-download-btn--large {
+    padding: 12px 24px;
+    font-size: var(--text-base);
+}
+
+.preview-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast) var(--ease-in-out);
+}
+.preview-close-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.file-preview-content {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--bg-secondary);
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.preview-video {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.file-preview-placeholder {
+    text-align: center;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.preview-placeholder-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.file-preview-placeholder h3 {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.file-preview-placeholder p {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    max-width: 300px;
+}
+/* end of RCA/frontend/src/css/ddm-dashboard.css */

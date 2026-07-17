@@ -1,12 +1,15 @@
 // RCA/frontend/src/components/ddm/admin/upload-queue.js
 import * as AdminService from "../../../services/ddm/admin-service.js";
 import { showToast } from "../../ui/toast.js";
+import { confirmModal } from "../../ui/modal.js";
+import FilePreviewPanel from "../file-preview-panel.js";
 
 export class UploadQueue {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.requests = [];
     this.selected = new Set();
+    this.previewPanel = new FilePreviewPanel();
     this.load();
   }
 
@@ -46,6 +49,7 @@ export class UploadQueue {
               </div>
             </div>
             <div class="space-x-2">
+              <button class="preview-btn btn btn-sm btn-info" data-id="${r.id}">Preview</button>
               <button class="approve-btn btn btn-sm btn-success" data-id="${r.id}">Approve</button>
               <button class="reject-btn btn btn-sm btn-danger" data-id="${r.id}">Reject</button>
             </div>
@@ -58,26 +62,62 @@ export class UploadQueue {
   }
 
   attachEvents() {
-    const checkboxes = this.container.querySelectorAll(".request-checkbox");
-    checkboxes.forEach(cb => {
+    this.container.querySelectorAll(".request-checkbox").forEach(cb => {
       cb.addEventListener("change", () => this.updateSelection());
     });
 
-    this.container.querySelectorAll(".approve-btn").forEach(btn => {
-      btn.addEventListener("click", async () => {
+    this.container.querySelectorAll(".preview-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
         const id = parseInt(btn.dataset.id);
-        await AdminService.approveUploadRequest(id);
-        showToast("Request approved", "success");
-        this.load();
+        const req = this.requests.find(r => r.id == id);
+        if (req) {
+          // Use admin preview endpoint
+          const previewUrl = `/api/ddm/admin/upload-requests/${id}/preview`;
+          this.previewPanel.open({ id, name: req.name, downloadUrl: previewUrl });
+        }
+      });
+    });
+
+    this.container.querySelectorAll(".approve-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.dataset.id);
+        const req = this.requests.find(r => r.id == id);
+        confirmModal({
+          title: "Approve Upload",
+          message: `Are you sure you want to approve "${req.name}"?`,
+          confirmText: "Approve",
+          onConfirm: async () => {
+            try {
+              await AdminService.approveUploadRequest(id);
+              showToast("Request approved", "success");
+              this.load();
+            } catch (e) {
+              showToast(e.message, "error");
+            }
+          },
+        });
       });
     });
 
     this.container.querySelectorAll(".reject-btn").forEach(btn => {
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         const id = parseInt(btn.dataset.id);
-        await AdminService.rejectUploadRequest(id);
-        showToast("Request rejected", "success");
-        this.load();
+        const req = this.requests.find(r => r.id == id);
+        confirmModal({
+          title: "Reject Upload",
+          message: `Are you sure you want to reject and delete "${req.name}"?`,
+          confirmText: "Reject",
+          danger: true,
+          onConfirm: async () => {
+            try {
+              await AdminService.rejectUploadRequest(id);
+              showToast("Request rejected", "success");
+              this.load();
+            } catch (e) {
+              showToast(e.message, "error");
+            }
+          },
+        });
       });
     });
 
@@ -95,31 +135,44 @@ export class UploadQueue {
   async bulkApprove() {
     const ids = Array.from(this.selected);
     if (!ids.length) return;
-    if (!confirm(`Approve ${ids.length} requests?`)) return;
-    try {
-      for (const id of ids) {
-        await AdminService.approveUploadRequest(id);
-      }
-      showToast("Selected requests approved", "success");
-      this.load();
-    } catch (e) {
-      showToast(e.message, "error");
-    }
+    confirmModal({
+      title: "Bulk Approve",
+      message: `Are you sure you want to approve ${ids.length} selected requests?`,
+      confirmText: "Approve All",
+      onConfirm: async () => {
+        try {
+          for (const id of ids) {
+            await AdminService.approveUploadRequest(id);
+          }
+          showToast("Selected requests approved", "success");
+          this.load();
+        } catch (e) {
+          showToast(e.message, "error");
+        }
+      },
+    });
   }
 
   async bulkReject() {
     const ids = Array.from(this.selected);
     if (!ids.length) return;
-    if (!confirm(`Reject ${ids.length} requests?`)) return;
-    try {
-      for (const id of ids) {
-        await AdminService.rejectUploadRequest(id);
-      }
-      showToast("Selected requests rejected", "success");
-      this.load();
-    } catch (e) {
-      showToast(e.message, "error");
-    }
+    confirmModal({
+      title: "Bulk Reject",
+      message: `Are you sure you want to reject and delete ${ids.length} selected requests?`,
+      confirmText: "Reject All",
+      danger: true,
+      onConfirm: async () => {
+        try {
+          for (const id of ids) {
+            await AdminService.rejectUploadRequest(id);
+          }
+          showToast("Selected requests rejected", "success");
+          this.load();
+        } catch (e) {
+          showToast(e.message, "error");
+        }
+      },
+    });
   }
 }
 // end of RCA/frontend/src/components/ddm/admin/upload-queue.js
