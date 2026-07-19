@@ -1,37 +1,47 @@
 /* RCA/frontend/src/css/ddm-dashboard.css */
+
 /* ──────────────── 1. Design Tokens (Custom Properties) ──────────────── */
 :root {
-    --bg-primary: #fafafa;
-    --bg-secondary: #f4f4f5;
-    --bg-tertiary: #eaeaec;
-    --bg-card: #ffffff;
-    --bg-card-hover: #fafafa;
-    --bg-overlay: rgba(250, 250, 250, 0.72);
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --text-muted: #a1a1aa;
-    --text-placeholder: #c4c4c8;
-    --border-color: #e4e4e7;
-    --border-light: #f0f0f2;
-    --border-focus: #a5a5aa;
-    --accent: #0066ff;
-    --accent-hover: #0052cc;
-    --accent-soft: rgba(0, 102, 255, 0.06);
-    --accent-glow: rgba(0, 102, 255, 0.18);
-    --danger: #e53e3e;
-    --danger-soft: rgba(229, 62, 62, 0.06);
+    /* ── Global‑aligned tokens (from global.css) ── */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f9fafb;
+    --bg-tertiary: #f3f4f6;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --text-placeholder: #c4c4c8;                /* derived from light palette */
+    --accent: #0D5E8C;
+    --accent-hover: #1A7CB5;                     /* matches global --accent-soft */
+    --accent-soft: rgba(13, 94, 140, 0.06);
+    --accent-glow: rgba(13, 94, 140, 0.18);
+    --border-color: #d1d5db;
+    --border-light: #e4e4e7;                     /* lighter than border-color */
+    --border-focus: #a5a5aa;                     /* slightly darker */
+    --input-bg: #ffffff;
+    --input-border: #d1d5db;
+
+    --danger: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.06);
     --success: #10b981;
     --success-soft: rgba(16, 185, 129, 0.06);
     --warning: #f59e0b;
     --warning-soft: rgba(245, 158, 11, 0.06);
-    --input-bg: #ffffff;
+
+    /* ── Dashboard‑specific card & overlay tokens ── */
+    --bg-card: #ffffff;
+    --bg-card-hover: #f9fafb;
+    --bg-overlay: rgba(255, 255, 255, 0.92);    /* matches global --panel-bg */
+
+    /* ── Shadows (keeping dashboard’s own stack) ── */
     --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.03);
     --shadow-md: 0 4px 12px rgba(0,0,0,0.04),0 2px 4px rgba(0,0,0,0.03);
     --shadow-lg: 0 8px 24px rgba(0,0,0,0.05),0 4px 8px rgba(0,0,0,0.03);
     --shadow-xl: 0 16px 40px rgba(0,0,0,0.06),0 6px 12px rgba(0,0,0,0.03);
     --shadow-card-hover: 0 12px 32px rgba(0,0,0,0.07),0 4px 10px rgba(0,0,0,0.04);
-    --shadow-button: 0 2px 8px rgba(0,102,255,0.25);
+    --shadow-button: 0 2px 8px rgba(13,94,140,0.25);
+
+    /* ── Radii, fonts, durations (unchanged) ── */
     --radius-xs: 6px;
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -61,37 +71,44 @@
 }
 
 [data-theme="dark"] {
-    --bg-primary: #0c0c0e;
-    --bg-secondary: #161618;
-    --bg-tertiary: #1e1e22;
-    --bg-card: #1a1a1e;
-    --bg-card-hover: #202024;
-    --bg-overlay: rgba(12,12,14,0.78);
-    --text-primary: #f4f4f5;
-    --text-secondary: #a1a1aa;
-    --text-muted: #6b6b72;
+    /* ── Global‑aligned dark tokens ── */
+    --bg-primary: #07090F;
+    --bg-secondary: #111827;
+    --bg-tertiary: #1f2937;
+    --text-primary: #E1E6EC;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
     --text-placeholder: #515158;
-    --border-color: #27272a;
+    --accent: #0D5E8C;                          /* keep accent the same in dark */
+    --accent-hover: #1A7CB5;
+    --accent-soft: rgba(13, 94, 140, 0.12);
+    --accent-glow: rgba(13, 94, 140, 0.22);
+    --border-color: rgba(13, 94, 140, 0.25);
     --border-light: #1e1e22;
     --border-focus: #52525b;
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-soft: rgba(59,130,246,0.1);
-    --accent-glow: rgba(59,130,246,0.22);
-    --danger: #f87171;
-    --danger-soft: rgba(248,113,113,0.08);
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-border: rgba(13, 94, 140, 0.4);
+
+    --danger: #f87171;                           /* slightly lighter red for dark */
+    --danger-soft: rgba(248, 113, 113, 0.08);
     --success: #34d399;
-    --success-soft: rgba(52,211,153,0.08);
+    --success-soft: rgba(52, 211, 153, 0.08);
     --warning: #fbbf24;
-    --warning-soft: rgba(251,191,36,0.08);
-    --input-bg: #1a1a1e;
+    --warning-soft: rgba(251, 191, 36, 0.08);
+
+    /* ── Dashboard‑specific dark tokens ── */
+    --bg-card: #1a1a1e;
+    --bg-card-hover: #202024;
+    --bg-overlay: rgba(7, 9, 15, 0.75);          /* matches global --panel-bg dark */
+
+    /* ── Shadows for dark ── */
     --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.25),0 1px 2px rgba(0,0,0,0.2);
     --shadow-md: 0 4px 12px rgba(0,0,0,0.3),0 2px 4px rgba(0,0,0,0.2);
     --shadow-lg: 0 8px 24px rgba(0,0,0,0.35),0 4px 8px rgba(0,0,0,0.2);
     --shadow-xl: 0 16px 40px rgba(0,0,0,0.4),0 6px 12px rgba(0,0,0,0.25);
     --shadow-card-hover: 0 12px 32px rgba(0,0,0,0.4),0 4px 10px rgba(0,0,0,0.25);
-    --shadow-button: 0 2px 12px rgba(59,130,246,0.35);
+    --shadow-button: 0 2px 12px rgba(13,94,140,0.35);
 }
 
 /* ──────────────── 2. Reset & Base Elements ──────────────── */
@@ -1390,7 +1407,6 @@ body {
         display: none;
     }
 }
-/* RCA/frontend/src/css/ddm-dashboard.css — new styles appended */
 
 /* ──────────────── 17. List View Redesigned (Rows) ──────────────── */
 .file-list-thumb {
@@ -1865,4 +1881,5 @@ body {
     color: var(--text-secondary);
     max-width: 300px;
 }
+
 /* end of RCA/frontend/src/css/ddm-dashboard.css */

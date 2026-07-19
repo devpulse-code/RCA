@@ -42,18 +42,32 @@ export class FileList {
     this.render(uiStore.viewMode);
   }
 
-  _filterByType(files) {
+   _filterByType(files) {
     const type = uiStore.typeFilter;
     if (!type || type === 'all') return files;
+
     return files.filter(file => {
+      // 1. Try MIME type first (more reliable)
+      const mime = (file.mime_type || '').toLowerCase();
+      if (type === 'image' && mime.startsWith('image/')) return true;
+      if (type === 'video' && mime.startsWith('video/')) return true;
+      if (type === 'doc' && (
+        mime.includes('pdf') ||
+        mime.includes('msword') ||
+        mime.includes('officedocument') ||
+        mime.includes('text/') ||
+        mime.includes('csv') ||
+        mime.includes('rtf')
+      )) return true;
+
+      // 2. Fallback: check file extension from name
       const ext = (file.name || '').split('.').pop().toLowerCase();
       if (type === 'image') return ['jpg','jpeg','png','gif','bmp','webp','svg'].includes(ext);
       if (type === 'video') return ['mp4','webm','mov','avi'].includes(ext);
       if (type === 'doc') return ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','rtf'].includes(ext);
-      return true;
+      return false;
     });
   }
-
   render(viewMode = uiStore.viewMode) {
     if (!this.container) return;
     if (this.files === null) {

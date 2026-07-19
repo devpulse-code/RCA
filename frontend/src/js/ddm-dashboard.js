@@ -399,23 +399,45 @@ async function init() {
         fileListInstance.render(uiStore.viewMode);
     });
 
-    // File type filter buttons – use the search bar directly
-    document.querySelectorAll('#file-type-filter .type-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('#file-type-filter .type-btn').forEach(b => {
-                b.classList.remove('active');
-                b.setAttribute('aria-pressed', 'false');
-            });
-            btn.classList.add('active');
-            btn.setAttribute('aria-pressed', 'true');
-            const type = btn.dataset.type;
-            uiStore.setTypeFilter(type);
-            // If search bar has a query, re-trigger search with new type filter
-            if (searchBarInstance && searchBarInstance.getCurrentQuery()) {
-                searchBarInstance.search();
-            }
-        });
+      // ── File type filter buttons – unified behaviour ──
+  document.querySelectorAll('#file-type-filter .type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update UI active state
+      document.querySelectorAll('#file-type-filter .type-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+
+      const type = btn.dataset.type;
+
+      // Always update the store
+      uiStore.setTypeFilter(type);
+
+      // If a search query is active, re‑run the search with the new type filter
+      if (searchBarInstance && searchBarInstance.getCurrentQuery()) {
+        searchBarInstance.search();
+      } else {
+        // No search query → just re‑render the file list locally
+        // If the user clicked "all", we might want to reload the original full list
+        if (type === 'all') {
+          // Clear any leftover search state and reload fresh files from server
+          if (searchBarInstance && searchBarInstance.searchInput) {
+            searchBarInstance.searchInput.value = '';
+          }
+          document.dispatchEvent(new CustomEvent('search-cleared'));
+          // The 'search-cleared' listener already calls fileListInstance.load()
+          // which will set this.files and render.
+        } else {
+          // For a specific type, just force the file list to re‑render using existing data
+          if (fileListInstance && fileListInstance.files) {
+            fileListInstance.render(uiStore.viewMode);
+          }
+        }
+      }
     });
+  });
 
     // ── Time Filter Button ──
     const timeFilterBtn = document.querySelector('.filter-btn');
