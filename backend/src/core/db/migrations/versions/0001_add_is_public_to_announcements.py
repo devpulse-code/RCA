@@ -2,7 +2,7 @@
 """add is_public column to announcements
 
 Revision ID: 0001
-Revises: None
+Revises: 0000
 Create Date: 2026-07-11 12:00:00.000000
 
 """
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '0001'
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = '0000'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

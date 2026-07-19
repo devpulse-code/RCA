@@ -1,4 +1,3 @@
-# RCA/docker-compose.yml
 services:
   nginx:
     build:
@@ -6,18 +5,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:80"
-      - "443:443"
     environment:
       - DOMAIN=${DOMAIN:-localhost}
     volumes:
       - ./frontend/src:/usr/share/nginx/html:ro
       - certbot_data:/etc/letsencrypt:ro
-      - nginx_cache:/var/cache/nginx        # <-- writable volume for temp files
-    user: "1000:1000"                        # <-- run as nginxuser
     networks:
       - ddm_network
     restart: unless-stopped
-    read_only: true
+    # read_only: true   # removed to allow config modification
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -126,7 +122,7 @@ volumes:
   ddm_meili_data:
   ddm_uploads:
   certbot_data:
-  nginx_cache:                 # <-- new volume for Nginx temp files
+  nginx_cache:
 
 networks:
   ddm_network:
