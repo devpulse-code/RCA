@@ -13,4 +13,5 @@ redis
 apscheduler
 pyotp
 python-multipart
+Pillow
 # end of RCA/backend/requirements.txt

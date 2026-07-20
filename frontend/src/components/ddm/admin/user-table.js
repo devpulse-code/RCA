@@ -8,7 +8,7 @@ export class UserTable {
     this.container = document.getElementById(containerId);
     this.users = [];
     this.selected = new Set();
-    this.divisions = [];   // was groups
+    this.divisions = [];
     this.render();
     this.load();
   }
@@ -16,7 +16,8 @@ export class UserTable {
   async load() {
     try {
       this.users = await AdminService.getUsers();
-      this.divisions = await AdminService.fetchDivisions();   // new
+      this.divisions = await AdminService.fetchDivisions();
+      this.selected.clear();
       this.render();
     } catch (e) {
       showToast(e.message, "error");
@@ -25,42 +26,55 @@ export class UserTable {
 
   render() {
     if (!this.container) return;
+    const selectedCount = this.selected.size;
+    const totalCount = this.users.length;
+    const allSelected = selectedCount === totalCount && totalCount > 0;
+
     let html = `
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-100">Users</h2>
         <button class="btn btn-primary" id="btn-create-user">Create User</button>
       </div>
-      <div class="flex gap-2 mb-4">
-        <button id="btn-bulk-revoke" class="btn btn-warning btn-sm" disabled>Revoke Selected Passcodes</button>
+      <div class="flex items-center gap-2 mb-4">
+        <button id="btn-select-all" class="btn btn-secondary btn-sm">
+          ${allSelected ? "Deselect All" : "Select All"}
+        </button>
+        <span id="selection-count" class="text-sm text-muted">
+          ${selectedCount > 0 ? `${selectedCount} selected` : ""}
+        </span>
+        <button id="btn-bulk-revoke" class="btn btn-warning btn-sm" ${selectedCount === 0 ? "disabled" : ""}>
+          Revoke Selected Passcodes
+        </button>
       </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th><input type="checkbox" id="select-all"></th>
               <th>Name</th>
               <th>Contact</th>
-              <th>Divisions</th>        <!-- changed -->
+              <th>Divisions</th>
               <th>Passcode Active</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="user-tbody">
-            ${this.users.map(u => `
-              <tr data-id="${u.id}">
-                <td><input type="checkbox" class="user-checkbox" value="${u.id}"></td>
-                <td>${u.name}</td>
-                <td>${u.contact || ''}</td>
-                <td>${(u.divisions || []).join(', ')}</td>   <!-- changed -->
-                <td>${u.passcode_active ? 'Active' : 'Revoked'}</td>
-                <td>
-                  <button class="edit-btn btn btn-sm btn-primary" data-id="${u.id}">Edit</button>
-                  <button class="revoke-btn btn btn-sm btn-warning" data-id="${u.id}">Revoke</button>
-                  <button class="set-passcode-btn btn btn-sm btn-info" data-id="${u.id}">Set Passcode</button>
-                  <button class="delete-btn btn btn-sm btn-danger" data-id="${u.id}">Delete</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${this.users.map(u => {
+              const isSelected = this.selected.has(u.id);
+              return `
+                <tr data-id="${u.id}" class="user-row ${isSelected ? "row-selected" : ""}">
+                  <td>${u.name}</td>
+                  <td>${u.contact || ''}</td>
+                  <td>${(u.divisions || []).join(', ')}</td>
+                  <td>${u.passcode_active ? 'Active' : 'Revoked'}</td>
+                  <td>
+                    <button class="edit-btn btn btn-sm btn-primary" data-id="${u.id}">Edit</button>
+                    <button class="revoke-btn btn btn-sm btn-warning" data-id="${u.id}">Revoke</button>
+                    <button class="set-passcode-btn btn btn-sm btn-info" data-id="${u.id}">Set Passcode</button>
+                    <button class="delete-btn btn btn-sm btn-danger" data-id="${u.id}">Delete</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -72,28 +86,33 @@ export class UserTable {
   attachEvents() {
     document.getElementById("btn-create-user")?.addEventListener("click", () => this.showCreateModal());
     document.getElementById("btn-bulk-revoke")?.addEventListener("click", () => this.bulkRevoke());
-    document.getElementById("select-all")?.addEventListener("change", (e) => {
-      const checkboxes = this.container.querySelectorAll(".user-checkbox");
-      checkboxes.forEach(cb => cb.checked = e.target.checked);
-      this.updateSelection();
+    document.getElementById("btn-select-all")?.addEventListener("click", () => this.toggleSelectAll());
+
+    // Row click for selection
+    this.container.querySelectorAll(".user-row").forEach(row => {
+      row.addEventListener("click", (e) => {
+        // Don't trigger if the click landed on a button or link inside the row
+        if (e.target.closest("button") || e.target.closest("a")) return;
+        const id = parseInt(row.dataset.id);
+        this.toggleRowSelection(id);
+      });
     });
 
-    this.container.querySelectorAll(".user-checkbox").forEach(cb => {
-      cb.addEventListener("change", () => this.updateSelection());
-    });
-
+    // Action buttons
     this.container.querySelectorAll(".edit-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const user = this.users.find(u => u.id == id);
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation(); // prevent row selection
+        const id = parseInt(btn.dataset.id);
+        const user = this.users.find(u => u.id === id);
         if (user) this.showEditModal(user);
       });
     });
 
     this.container.querySelectorAll(".revoke-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const user = this.users.find(u => u.id == id);
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.dataset.id);
+        const user = this.users.find(u => u.id === id);
         confirmModal({
           title: "Revoke Passcode",
           message: `Are you sure you want to revoke the passcode for ${user.name}? A new random passcode will be generated.`,
@@ -101,7 +120,7 @@ export class UserTable {
           danger: true,
           onConfirm: async () => {
             try {
-              const res = await AdminService.revokePasscode(parseInt(id));
+              const res = await AdminService.revokePasscode(id);
               showPasscodeToast("New passcode generated:", res.passcode);
               this.load();
             } catch (e) {
@@ -113,17 +132,19 @@ export class UserTable {
     });
 
     this.container.querySelectorAll(".set-passcode-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const id = parseInt(btn.dataset.id);
-        const user = this.users.find(u => u.id == id);
+        const user = this.users.find(u => u.id === id);
         this.showSetPasscodeModal(user);
       });
     });
 
     this.container.querySelectorAll(".delete-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const user = this.users.find(u => u.id == id);
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.dataset.id);
+        const user = this.users.find(u => u.id === id);
         confirmModal({
           title: "Delete User",
           message: `Are you sure you want to permanently delete ${user.name}? This cannot be undone.`,
@@ -131,7 +152,7 @@ export class UserTable {
           danger: true,
           onConfirm: async () => {
             try {
-              await AdminService.deleteUser(parseInt(id));
+              await AdminService.deleteUser(id);
               showToast("User deleted", "success");
               this.load();
             } catch (e) {
@@ -143,12 +164,52 @@ export class UserTable {
     });
   }
 
-  updateSelection() {
-    const checkboxes = this.container.querySelectorAll(".user-checkbox");
-    this.selected.clear();
-    checkboxes.forEach(cb => { if (cb.checked) this.selected.add(parseInt(cb.value)); });
+  toggleRowSelection(id) {
+    if (this.selected.has(id)) {
+      this.selected.delete(id);
+    } else {
+      this.selected.add(id);
+    }
+    this.updateVisuals();
+  }
+
+  toggleSelectAll() {
+    const allIds = this.users.map(u => u.id);
+    const allSelected = allIds.every(id => this.selected.has(id));
+    if (allSelected) {
+      this.selected.clear();
+    } else {
+      allIds.forEach(id => this.selected.add(id));
+    }
+    this.updateVisuals();
+  }
+
+  updateVisuals() {
+    // Update selected class on each row
+    this.container.querySelectorAll(".user-row").forEach(row => {
+      const id = parseInt(row.dataset.id);
+      row.classList.toggle("row-selected", this.selected.has(id));
+    });
+
+    // Update toolbar elements
+    const selectedCount = this.selected.size;
+    const totalCount = this.users.length;
+    const allSelected = selectedCount === totalCount && totalCount > 0;
+
+    const selectAllBtn = document.getElementById("btn-select-all");
+    if (selectAllBtn) {
+      selectAllBtn.textContent = allSelected ? "Deselect All" : "Select All";
+    }
+
+    const countSpan = document.getElementById("selection-count");
+    if (countSpan) {
+      countSpan.textContent = selectedCount > 0 ? `${selectedCount} selected` : "";
+    }
+
     const bulkBtn = document.getElementById("btn-bulk-revoke");
-    bulkBtn.disabled = this.selected.size === 0;
+    if (bulkBtn) {
+      bulkBtn.disabled = selectedCount === 0;
+    }
   }
 
   async bulkRevoke() {
@@ -216,6 +277,9 @@ export class UserTable {
     });
   }
 
+  // -------------------------------------------------------------------
+  // Modal methods unchanged (except they don’t need checkbox related code)
+  // -------------------------------------------------------------------
   showCreateModal() {
     const divisionOptions = this.divisions.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
     const content = `

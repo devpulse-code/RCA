@@ -9,9 +9,8 @@ WORKDIR /app/backend
 # NEW: point Alembic to the config file no matter where we run from
 ENV ALEMBIC_CONFIG=/app/backend/alembic.ini
 # Install curl (healthcheck)
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ffmpeg && \
     rm -rf /var/lib/apt/lists/*
-
 # Copy requirements relative to project root
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

@@ -11,6 +11,19 @@ from alembic import context
 
 from backend.src.core.models.base import Base
 
+# 👇 IMPORT ALL MODELS so that Alembic knows about every table
+from backend.src.modules.ddm.models import (
+    admin,
+    announcement,
+    audit_log,
+    base as ddm_base,       # TimestampMixin etc. (not needed but harmless)
+    file,
+    group,
+    notification,
+    system_setting,
+    user,
+)
+
 # Alembic Config object
 config = context.config
 

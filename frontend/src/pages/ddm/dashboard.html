@@ -22,8 +22,7 @@
         <!-- Navigation -->
         <nav class="navbar" role="navigation" aria-label="Main navigation">
             <div class="nav-left">
-                            <span class="logo-text"><a href="dashboard.html">Dashboard</a></span>
-                            
+                <span class="logo-text"><a href="dashboard.html">Dashboard</a></span>
             </div>
             <button id="theme-toggle" style="display:none;" aria-label="Toggle theme"></button>
             <div class="nav-right">
@@ -64,7 +63,7 @@
                     <h1 class="welcome-title" id="hero-heading">
                         <span id="greeting-prefix">Welcome back</span>, <span id="welcome-name" class="welcome-name-accent">User</span>
                     </h1>
-                   <p class="welcome-subtitle"><b>Your gateway to our team's digital documents and resources</b></p>
+                    <p class="welcome-subtitle"><b>Your gateway to our team's digital documents and resources</b></p>
                     <div id="search-container" class="search-container-wrapper"></div>
                     <div class="file-type-filter" id="file-type-filter" role="group" aria-label="Filter files by type">
                         <button class="type-btn active" data-type="all" aria-pressed="true">All Files</button>
@@ -102,30 +101,27 @@
                         <span class="library-count" id="file-count-indicator" aria-live="polite"></span>
                     </div>
                     <div class="filters">
-                        <div id="group-filter-container" class="group-filter-inline"></div>
-                        <div class="filters-right-group">
-                            <button class="filter-btn" aria-label="Filter by time period">
-                                All Time
-                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        <!-- Unified Sort & View Group with new Select button -->
+                        <div class="sort-views-group" role="group" aria-label="Sort and view options">
+                            <!-- Select button added before Newest -->
+                            <button class="sort-toggle-btn" id="select-toggle" aria-pressed="false" title="Select files">
+                                <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+                                <span class="sort-label">Select</span>
                             </button>
-                            <!-- ── Redesigned sort & view group ── -->
-                            <div class="sort-views-group" role="group" aria-label="Sort and view options">
-                                <button class="sort-view-btn active" data-sort="newest" aria-pressed="true">
-                                    <i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i>
-                                    Newest
-                                </button>
-                                <button class="sort-view-btn" data-sort="oldest" aria-pressed="false">
-                                    <i class="fa-solid fa-arrow-down-short-wide" aria-hidden="true"></i>
-                                    Oldest
-                                </button>
-                                <span class="sort-view-divider" aria-hidden="true"></span>
-                                <button class="sort-view-btn view-only active" data-view="grid" aria-pressed="true" aria-label="Grid view">
-                                    <i class="fa-solid fa-grip" aria-hidden="true"></i>
-                                </button>
-                                <button class="sort-view-btn view-only" data-view="list" aria-pressed="false" aria-label="List view">
-                                    <i class="fa-solid fa-list" aria-hidden="true"></i>
-                                </button>
-                            </div>
+                            <span class="sort-view-divider" aria-hidden="true"></span>
+                            <button class="sort-toggle-btn active" id="sort-toggle" data-sort="newest" aria-pressed="true" aria-label="Sort order: Newest first">
+                                <i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i>
+                                <span class="sort-label">Newest</span>
+                            </button>
+                            <span class="sort-view-divider" aria-hidden="true"></span>
+                            <button class="sort-toggle-btn active" data-view="grid" aria-pressed="true" aria-label="Grid view">
+                                <i class="fa-solid fa-grip" aria-hidden="true"></i>
+                                <span>Grid</span>
+                            </button>
+                            <button class="sort-toggle-btn" data-view="list" aria-pressed="false" aria-label="List view">
+                                <i class="fa-solid fa-list" aria-hidden="true"></i>
+                                <span>List</span>
+                            </button>
                         </div>
                     </div>
                 </div>

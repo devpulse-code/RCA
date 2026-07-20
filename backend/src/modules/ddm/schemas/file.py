@@ -25,6 +25,8 @@ class FileOut(BaseModel):
     status: str
     created_at: str
     updated_at: str
+    has_thumbnail: bool = False
+    has_preview_clip: bool = False
 
     class Config:
         from_attributes = True
@@ -53,7 +55,7 @@ class UploadRequestOut(BaseModel):
 
 class FileReplace(BaseModel):
     """For replacing the content of an existing file record."""
-    storage_type: Optional[str] = None   # if changed from local to terabox or vice versa (optional)
+    storage_type: Optional[str] = None
     terabox_url: Optional[str] = None
     file: Optional[bytes] = None         # not used as pydantic field – it's multipart
 # end of RCA/backend/src/modules/ddm/schemas/file.py

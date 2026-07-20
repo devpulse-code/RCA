@@ -75,17 +75,45 @@ async def download_file(
     content_disposition = f'{disposition_type}; filename="{filename}"'
 
     if file_record.storage_type.value == "local":
-        path, mime_type, _ = await stream_local_file(file_record)
+        path, stored_mime, _ = await stream_local_file(file_record)
+        # ---- FIX: Guess MIME type from file extension if stored_mime is not an image type ----
+        guessed_mime, _ = mimetypes.guess_type(path)
+        # Prefer guessed_mime if it's an image type, otherwise use stored_mime
+        if guessed_mime and guessed_mime.startswith('image/'):
+            mime_type = guessed_mime
+        else:
+            mime_type = stored_mime or 'application/octet-stream'
+
+        # For inline display, also check if the file exists
+        if not os.path.exists(path):
+            logger.error(f"Local file not found: {path}")
+            raise HTTPException(status_code=404, detail="File missing on server")
+
         def iterfile():
             with open(path, "rb") as f:
                 while chunk := f.read(64 * 1024):
                     yield chunk
-        headers = {"Content-Disposition": content_disposition}
+
+        headers = {
+            "Content-Disposition": content_disposition,
+            "Content-Type": mime_type,
+        }
+        # Add caching for thumbnails
+        if inline:
+            headers["Cache-Control"] = "public, max-age=86400"  # 1 day
+
         return StreamingResponse(iterfile(), media_type=mime_type, headers=headers)
+
     elif file_record.storage_type.value == "terabox":
         content, mime_type = await proxy_terabox(file_record)
-        headers = {"Content-Disposition": content_disposition}
+        headers = {
+            "Content-Disposition": content_disposition,
+            "Content-Type": mime_type,
+        }
+        if inline:
+            headers["Cache-Control"] = "public, max-age=86400"
         return StreamingResponse(iter([content]), media_type=mime_type, headers=headers)
+
     else:
         raise HTTPException(status_code=400, detail="Unknown storage type")
 # end of RCA/backend/src/modules/ddm/api/files/download.py

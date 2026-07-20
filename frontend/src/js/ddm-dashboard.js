@@ -1,13 +1,15 @@
 // RCA/frontend/src/js/ddm-dashboard.js
+
 /**
  * DDM Dashboard — Enhanced JavaScript
- * Handles session, greeting, notifications, AI FAB, filters, etc.
+ * Handles session, greeting, notifications, AI FAB, filters, select mode,
+ * sticky header detection, and pagination.
  */
 
 let userName = "User";
 let currentView = "files";
 let fileListInstance = null;
-let searchBarInstance = null;   // ★ new
+let searchBarInstance = null;
 
 /* ──────────────── Toast System ──────────────── */
 function showToast(message, type = 'info', duration = 4000) {
@@ -238,6 +240,35 @@ function initKeyboardNavigation() {
     }
 }
 
+/* ──────────────── Sticky Class on Scroll ──────────────── */
+function initStickyScroll() {
+    const filterEl = document.querySelector('.file-type-filter');
+    const headerEl = document.querySelector('.library-header');
+
+    const checkScroll = () => {
+        const scrollY = window.scrollY;
+        const threshold = 80; // pixels from top after navbar
+
+        if (filterEl) {
+            if (scrollY > threshold) {
+                filterEl.classList.add('scrolled');
+            } else {
+                filterEl.classList.remove('scrolled');
+            }
+        }
+        if (headerEl) {
+            if (scrollY > threshold) {
+                headerEl.classList.add('scrolled');
+            } else {
+                headerEl.classList.remove('scrolled');
+            }
+        }
+    };
+
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    checkScroll(); // initial
+}
+
 /* ──────────────── Main Init ──────────────── */
 async function init() {
     showSkeletonLoader();
@@ -247,7 +278,7 @@ async function init() {
     updateGreeting();
     setInterval(updateGreeting, 60000);
 
-    // ── File Preview Panel (must load early) ──
+    // ── File Preview Panel ──
     try {
         const { default: FilePreviewPanel } = await import('../components/ddm/file-preview-panel.js');
         window.filePreviewPanel = new FilePreviewPanel();
@@ -255,11 +286,10 @@ async function init() {
 
     // Load components
     try {
-        const { default: UploadForm } = await import('../components/ddm/upload-form.js');
-        new UploadForm('upload-container');
-    } catch (err) { console.warn('Upload form not available:', err); }
-
-    // ★ Store the search bar instance globally
+    const { UploadForm } = await import('../components/ddm/upload-form.js');
+    new UploadForm('upload-container');
+} catch (err) { console.warn('Upload form not available:', err); }
+    // Search Bar
     try {
         const { default: SearchBar } = await import('../components/ddm/search-bar.js');
         searchBarInstance = new SearchBar('search-container', (data) => {
@@ -271,14 +301,10 @@ async function init() {
         });
     } catch (err) { console.error('Search bar failed:', err); }
 
-    try {
-        const { default: GroupFilter } = await import('../components/ddm/group-filter.js');
-        window.groupFilter = new GroupFilter('group-filter-container');
-    } catch (err) { console.warn('Group filter not available:', err); }
-
+    // File List (pass load-more button ID)
     try {
         const { FileList } = await import('../components/ddm/file-list.js');
-        fileListInstance = new FileList('file-list-container');
+        fileListInstance = new FileList('file-list-container', 'load-more-btn');
 
         const fileListContainer = document.getElementById('file-list-container');
         if (fileListContainer) {
@@ -354,120 +380,120 @@ async function init() {
         if (aiFab) aiFab.style.display = 'none';
     }
 
-    // ── Unified Sort & View buttons ──
-    document.querySelectorAll('.sort-view-btn').forEach(btn => {
+    // ── Select button ──
+    const selectToggleBtn = document.getElementById('select-toggle');
+    const { uiStore } = await import('../stores/ui-store.js');
+
+    const updateSelectButtonState = () => {
+        if (selectToggleBtn) {
+            if (uiStore.selectMode) {
+                selectToggleBtn.classList.add('active');
+                selectToggleBtn.setAttribute('aria-pressed', 'true');
+            } else {
+                selectToggleBtn.classList.remove('active');
+                selectToggleBtn.setAttribute('aria-pressed', 'false');
+            }
+        }
+    };
+
+    if (selectToggleBtn) {
+        selectToggleBtn.addEventListener('click', () => {
+            uiStore.toggleSelectMode();
+            updateSelectButtonState();
+            if (!uiStore.selectMode && fileListInstance) {
+                fileListInstance._clearSelection();
+            }
+        });
+    }
+
+    uiStore.onSelectModeChange(() => {
+        updateSelectButtonState();
+    });
+
+    // ── Sort Toggle ──
+    const sortToggle = document.getElementById('sort-toggle');
+    if (sortToggle) {
+        sortToggle.addEventListener('click', () => {
+            const currentSort = sortToggle.dataset.sort;
+            const newSort = currentSort === 'newest' ? 'oldest' : 'newest';
+
+            sortToggle.dataset.sort = newSort;
+            sortToggle.classList.add('active');
+            sortToggle.setAttribute('aria-pressed', 'true');
+
+            const icon = sortToggle.querySelector('i');
+            const label = sortToggle.querySelector('.sort-label');
+            if (newSort === 'newest') {
+                icon.className = 'fa-solid fa-arrow-up-wide-short';
+                label.textContent = 'Newest';
+            } else {
+                icon.className = 'fa-solid fa-arrow-down-short-wide';
+                label.textContent = 'Oldest';
+            }
+
+            document.dispatchEvent(new CustomEvent('sort-files', { detail: { sort: newSort } }));
+        });
+    }
+
+    // ── View Buttons ──
+    document.querySelectorAll('.sort-toggle-btn[data-view]').forEach(btn => {
         btn.addEventListener('click', () => {
-            const isViewBtn = btn.hasAttribute('data-view');
-            const isSortBtn = btn.hasAttribute('data-sort');
-
-            if (isViewBtn) {
-                document.querySelectorAll('.sort-view-btn[data-view]').forEach(b => {
-                    b.classList.remove('active');
-                    b.setAttribute('aria-pressed', 'false');
-                });
-                btn.classList.add('active');
-                btn.setAttribute('aria-pressed', 'true');
-                const view = btn.dataset.view;
-                import('../stores/ui-store.js').then(({ uiStore }) => uiStore.setViewMode(view)).catch(console.warn);
-            }
-
-            if (isSortBtn) {
-                document.querySelectorAll('.sort-view-btn[data-sort]').forEach(b => {
-                    b.classList.remove('active');
-                    b.setAttribute('aria-pressed', 'false');
-                });
-                btn.classList.add('active');
-                btn.setAttribute('aria-pressed', 'true');
-                const sort = btn.dataset.sort;
-                document.dispatchEvent(new CustomEvent('sort-files', { detail: { sort } }));
-            }
+            document.querySelectorAll('.sort-toggle-btn[data-view]').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            const view = btn.dataset.view;
+            uiStore.setViewMode(view);
         });
     });
 
     // ── Sort-files event handler ──
-    const { uiStore } = await import('../stores/ui-store.js');
     document.addEventListener('sort-files', (e) => {
-        if (!fileListInstance || !fileListInstance.files) return;
+        if (!fileListInstance || !fileListInstance.allFiles) return;
         const sort = e.detail.sort;
-        fileListInstance.files.sort((a, b) => {
+        fileListInstance.allFiles.sort((a, b) => {
             const dateA = new Date(a.created_at || 0);
             const dateB = new Date(b.created_at || 0);
             if (sort === 'newest') return dateB - dateA;
             if (sort === 'oldest') return dateA - dateB;
             return 0;
         });
+        fileListInstance.visibleCount = fileListInstance.pageSize; // reset pagination
         fileListInstance.render(uiStore.viewMode);
     });
 
-      // ── File type filter buttons – unified behaviour ──
-  document.querySelectorAll('#file-type-filter .type-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Update UI active state
-      document.querySelectorAll('#file-type-filter .type-btn').forEach(b => {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
+    // ── File type filter buttons ──
+    document.querySelectorAll('#file-type-filter .type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#file-type-filter .type-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
 
-      const type = btn.dataset.type;
+            const type = btn.dataset.type;
+            uiStore.setTypeFilter(type);
 
-      // Always update the store
-      uiStore.setTypeFilter(type);
-
-      // If a search query is active, re‑run the search with the new type filter
-      if (searchBarInstance && searchBarInstance.getCurrentQuery()) {
-        searchBarInstance.search();
-      } else {
-        // No search query → just re‑render the file list locally
-        // If the user clicked "all", we might want to reload the original full list
-        if (type === 'all') {
-          // Clear any leftover search state and reload fresh files from server
-          if (searchBarInstance && searchBarInstance.searchInput) {
-            searchBarInstance.searchInput.value = '';
-          }
-          document.dispatchEvent(new CustomEvent('search-cleared'));
-          // The 'search-cleared' listener already calls fileListInstance.load()
-          // which will set this.files and render.
-        } else {
-          // For a specific type, just force the file list to re‑render using existing data
-          if (fileListInstance && fileListInstance.files) {
-            fileListInstance.render(uiStore.viewMode);
-          }
-        }
-      }
+            if (searchBarInstance && searchBarInstance.getCurrentQuery()) {
+                searchBarInstance.search();
+            } else {
+                if (type === 'all') {
+                    if (searchBarInstance && searchBarInstance.searchInput) {
+                        searchBarInstance.searchInput.value = '';
+                    }
+                    document.dispatchEvent(new CustomEvent('search-cleared'));
+                } else {
+                    if (fileListInstance && fileListInstance.allFiles) {
+                        fileListInstance.visibleCount = fileListInstance.pageSize;
+                        fileListInstance.render(uiStore.viewMode);
+                    }
+                }
+            }
+        });
     });
-  });
-
-    // ── Time Filter Button ──
-    const timeFilterBtn = document.querySelector('.filter-btn');
-    if (timeFilterBtn) {
-        timeFilterBtn.addEventListener('click', () => {
-            const current = timeFilterBtn.textContent.trim();
-            if (current.includes('All Time')) {
-                timeFilterBtn.textContent = 'Recent';
-                timeFilterBtn.classList.add('active');
-                document.dispatchEvent(new CustomEvent('filter-time', { detail: 'recent' }));
-            } else {
-                timeFilterBtn.textContent = 'All Time';
-                timeFilterBtn.classList.remove('active');
-                document.dispatchEvent(new CustomEvent('filter-time', { detail: 'all' }));
-            }
-        });
-
-        document.addEventListener('filter-time', (e) => {
-            if (!fileListInstance || !fileListInstance.files) return;
-            const filter = e.detail;
-            if (filter === 'recent') {
-                const now = new Date();
-                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                const filtered = fileListInstance.files.filter(f => new Date(f.created_at) >= sevenDaysAgo);
-                fileListInstance.setFiles(filtered);
-            } else {
-                fileListInstance.load();
-            }
-        });
-    }
 
     // Profile dropdown
     const profileTrigger = document.getElementById('profile-trigger');
@@ -506,7 +532,11 @@ async function init() {
 
     initKeyboardNavigation();
     initScrollReveal();
+    initStickyScroll(); // new
     toggleView('files');
+
+    // Initial select button state
+    updateSelectButtonState();
 
     setTimeout(() => {
         hideSkeletonLoader();
@@ -524,4 +554,4 @@ async function init() {
 document.addEventListener('DOMContentLoaded', init);
 
 export { showToast, showError, hideError, toggleView, updateFileCount };
-// end of RCA/frontend/src/js/ddm-dashboard.js
+// end of RCA/frontend/src/js/ddm-dashboard.js  

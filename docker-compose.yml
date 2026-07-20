@@ -35,7 +35,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       target: development
     volumes:
-      - ./backend/src:/app/backend/src:ro
+      - ./backend/src:/app/backend/src
       - ddm_uploads:/app/uploads
     env_file:
       - .env

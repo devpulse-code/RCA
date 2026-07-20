@@ -1,19 +1,16 @@
 # RCA/backend/src/modules/ddm/services/ai_service.py
 import logging
 import httpx
-import json
 from backend.src.config.settings import settings
-from backend.src.modules.ddm.services.search_service import search_files
 
 logger = logging.getLogger(__name__)
 
-# Provider configuration
 PROVIDER_GEMINI = "gemini"
 PROVIDER_TOGETHER = "together"
 PROVIDER_GROQ = "groq"
 
-def _get_gemini_endpoint(model: str) -> str:
-    return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.ddm_ai_api_key}"
+def _get_gemini_endpoint(model: str, api_key: str) -> str:
+    return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
 def _get_together_endpoint() -> str:
     return "https://api.together.xyz/v1/completions"
@@ -21,24 +18,31 @@ def _get_together_endpoint() -> str:
 def _get_groq_endpoint() -> str:
     return "https://api.groq.com/openai/v1/chat/completions"
 
-async def _call_llm(prompt: str, system_instruction: str = None) -> str | None:
+async def _call_llm(prompt: str, system_instruction: str = None, ai_settings: dict = None) -> str | None:
     """
     Generic call to the configured LLM provider.
-    Returns the text response, or None on failure.
+    Accepts an optional `ai_settings` dictionary with keys:
+      - provider, api_key, model
+    Falls back to global settings if not provided.
     """
-    provider = settings.ddm_ai_provider.lower()
-    api_key = settings.ddm_ai_api_key
+    if ai_settings is None:
+        ai_settings = {}
+
+    provider = ai_settings.get("provider") or settings.ddm_ai_provider
+    api_key = ai_settings.get("api_key") or settings.ddm_ai_api_key
+    model = ai_settings.get("model") or settings.ddm_ai_model
+
     if not api_key:
         logger.warning("No AI API key configured")
         return None
 
     try:
-        if provider == PROVIDER_GEMINI:
-            return await _call_gemini(prompt, system_instruction)
-        elif provider == PROVIDER_TOGETHER:
-            return await _call_together(prompt, system_instruction)
-        elif provider == PROVIDER_GROQ:
-            return await _call_groq(prompt, system_instruction)
+        if provider.lower() == PROVIDER_GEMINI:
+            return await _call_gemini(prompt, system_instruction, model, api_key)
+        elif provider.lower() == PROVIDER_TOGETHER:
+            return await _call_together(prompt, system_instruction, model, api_key)
+        elif provider.lower() == PROVIDER_GROQ:
+            return await _call_groq(prompt, system_instruction, model, api_key)
         else:
             logger.error(f"Unknown AI provider: {provider}")
             return None
@@ -46,13 +50,11 @@ async def _call_llm(prompt: str, system_instruction: str = None) -> str | None:
         logger.error(f"LLM call failed: {e}")
         return None
 
-async def _call_gemini(prompt: str, system_instruction: str = None) -> str | None:
-    model = settings.ddm_ai_model
-    url = _get_gemini_endpoint(model)
+async def _call_gemini(prompt: str, system_instruction: str, model: str, api_key: str) -> str | None:
+    url = _get_gemini_endpoint(model, api_key)
     headers = {"Content-Type": "application/json"}
     contents = [{"parts": [{"text": prompt}]}]
     if system_instruction:
-        # Gemini uses 'system_instruction' field at top level
         payload = {"contents": contents, "system_instruction": {"parts": [{"text": system_instruction}]}}
     else:
         payload = {"contents": contents}
@@ -62,7 +64,6 @@ async def _call_gemini(prompt: str, system_instruction: str = None) -> str | Non
             logger.error(f"Gemini API error {resp.status_code}: {resp.text}")
             return None
         data = resp.json()
-        # Extract text from response
         candidates = data.get("candidates", [])
         if candidates:
             parts = candidates[0].get("content", {}).get("parts", [])
@@ -70,23 +71,18 @@ async def _call_gemini(prompt: str, system_instruction: str = None) -> str | Non
                 return parts[0]["text"]
         return None
 
-async def _call_together(prompt: str, system_instruction: str = None) -> str | None:
-    # Stub for Together AI
-    logger.warning("Together AI not implemented – falling back")
+async def _call_together(prompt: str, system_instruction: str, model: str, api_key: str) -> str | None:
+    # Placeholder – implement according to Together API docs
+    logger.warning("Together AI not implemented")
     return None
 
-async def _call_groq(prompt: str, system_instruction: str = None) -> str | None:
-    # Stub for Groq
-    logger.warning("Groq not implemented – falling back")
+async def _call_groq(prompt: str, system_instruction: str, model: str, api_key: str) -> str | None:
+    # Placeholder – implement according to Groq API docs
+    logger.warning("Groq not implemented")
     return None
 
 
-# --- Intent detection ---
-async def detect_intent(user_message: str, has_file_context: bool) -> str:
-    """
-    Classify the user's intent using the LLM.
-    Returns one of: "file_finding", "content_qa", "summarize", "general"
-    """
+async def detect_intent(user_message: str, has_file_context: bool, ai_settings: dict = None) -> str:
     system = (
         "You are an intent classifier for a document management AI. "
         "Classify the user's message into exactly one of these categories:\n"
@@ -101,7 +97,7 @@ async def detect_intent(user_message: str, has_file_context: bool) -> str:
     else:
         prompt = f"User message: {user_message}"
 
-    result = await _call_llm(prompt, system_instruction=system)
+    result = await _call_llm(prompt, system_instruction=system, ai_settings=ai_settings)
     if result:
         result = result.strip().lower()
         if "summarize" in result:
@@ -112,7 +108,7 @@ async def detect_intent(user_message: str, has_file_context: bool) -> str:
             return "file_finding"
         else:
             return "general"
-    # Fallback: simple keyword heuristic if LLM fails
+    # Fallback heuristic
     msg_lower = user_message.lower()
     if has_file_context and any(w in msg_lower for w in ["summarize", "summary", "summarise"]):
         return "summarize"
@@ -123,12 +119,7 @@ async def detect_intent(user_message: str, has_file_context: bool) -> str:
     return "general"
 
 
-# --- File content fetching from Meilisearch ---
 async def get_file_content_from_meili(file_id: int) -> str | None:
-    """
-    Retrieve the full text content of a file from Meilisearch index.
-    Assumes index name 'files' and field 'content'.
-    """
     try:
         url = f"{settings.meili_url}/indexes/files/documents/{file_id}"
         headers = {"Authorization": f"Bearer {settings.meili_master_key}"}
@@ -145,11 +136,7 @@ async def get_file_content_from_meili(file_id: int) -> str | None:
         return None
 
 
-# --- Summarization ---
-async def summarize_file(file_content: str, user_message: str) -> str:
-    """
-    Summarize the content of a file. The user_message may contain instructions.
-    """
+async def summarize_file(file_content: str, user_message: str, ai_settings: dict = None) -> str:
     system = "You are a helpful assistant that summarizes documents concisely."
     prompt = (
         f"Please summarize the following document content. "
@@ -157,20 +144,14 @@ async def summarize_file(file_content: str, user_message: str) -> str:
         f"Document content:\n{file_content[:4000]}\n\n"
         f"Summary:"
     )
-    result = await _call_llm(prompt, system_instruction=system)
+    result = await _call_llm(prompt, system_instruction=system, ai_settings=ai_settings)
     return result or "Sorry, I couldn't generate a summary right now."
 
 
-# --- Answer question with provided file contents ---
-async def answer_question(user_message: str, file_contents: list[dict]) -> str:
-    """
-    file_contents: list of dicts with 'name' and 'content' (each already trimmed).
-    Returns a synthesized answer with citations.
-    """
+async def answer_question(user_message: str, file_contents: list[dict], ai_settings: dict = None) -> str:
     if not file_contents:
         return "I couldn't find any relevant files to answer your question."
 
-    # Build context from provided files
     context_parts = []
     for f in file_contents:
         name = f["name"]
@@ -189,36 +170,30 @@ async def answer_question(user_message: str, file_contents: list[dict]) -> str:
         "You are a helpful assistant that answers questions based only on the provided file contents. "
         "If the answer cannot be found, say so."
     )
-    result = await _call_llm(prompt, system_instruction=system)
+    result = await _call_llm(prompt, system_instruction=system, ai_settings=ai_settings)
     return result or "I wasn't able to generate an answer at this time."
 
 
-# --- Generate search query (existing, kept as is) ---
-async def generate_search_query(user_message: str) -> str | None:
-    """
-    Uses LLM to turn natural language into a concise search query string.
-    Returns the query string, or None if it fails (to trigger fallback).
-    """
+async def generate_search_query(user_message: str, ai_settings: dict = None) -> str | None:
     system = (
         "You are a search query generator for a file management system. "
         "The user will ask for files in natural language. "
         "Convert their request into a short, precise search query suitable for a Meilisearch engine. "
         "Return ONLY the query string, no additional text, no quotes."
     )
-    result = await _call_llm(user_message, system_instruction=system)
+    result = await _call_llm(user_message, system_instruction=system, ai_settings=ai_settings)
     if result:
         return result.strip()
     return None
 
 
-# --- Keyword fallback search (existing, kept for potential use) ---
 async def keyword_fallback_search(query: str, group_ids: list[int]) -> list[dict]:
-    """
-    Fallback: use raw user message as search query and return top files.
-    """
+    # Reuse existing search
+    from backend.src.modules.ddm.services.search_service import search_files
     hits, _, _ = await search_files(query=query, group_ids=group_ids, search_content=True, page=1, per_page=5)
     return [
         {"id": h["id"], "name": h.get("name", ""), "description": h.get("description", "")}
         for h in hits
     ]
+
 # end of RCA/backend/src/modules/ddm/services/ai_service.py

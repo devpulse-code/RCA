@@ -34,6 +34,10 @@ class File(Base, TimestampMixin):
     uploader_type = Column(String, nullable=True)
     status = Column(String, default="active")
 
+    # Thumbnail & preview clip paths (relative to UPLOAD_DIR/thumbnails and UPLOAD_DIR/previews)
+    thumbnail_path = Column(String, nullable=True)
+    preview_clip_path = Column(String, nullable=True)
+
     # Enable the many-to-many relationship to Group
     groups = relationship("Group", secondary=file_group_association, back_populates="files")
 # end of RCA/backend/src/modules/ddm/models/file.py

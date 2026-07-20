@@ -12,7 +12,14 @@ const getFileBadgeColor = (file) => {
 };
 
 const getFileType = (file) => {
+    const mime = (file.mime_type || '').toLowerCase();
     const ext = (file.name || '').split('.').pop().toLowerCase();
+    if (mime.startsWith('image/')) return 'Image';
+    if (mime.startsWith('video/')) return 'Video';
+    if (mime === 'application/pdf') return 'Document';
+    if (mime.includes('word') || mime.includes('document')) return 'Document';
+    if (mime.includes('spreadsheet') || mime.includes('excel')) return 'Spreadsheet';
+    if (mime.includes('presentation') || mime.includes('powerpoint')) return 'Presentation';
     if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) return 'Image';
     if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(ext)) return 'Document';
     if (['pptx', 'ppt'].includes(ext)) return 'Presentation';
@@ -48,45 +55,51 @@ const getFileIcon = (file) => {
     return 'fa-regular fa-file';
 };
 
-export function fileCard(file, viewMode = 'grid', selectedFileIds = new Set()) {
+export function fileCard(file, viewMode = 'grid', selectedFileIds = new Set(), selectMode = false) {
     const type = getFileType(file);
     const ext = (file.name || '').split('.').pop().toUpperCase();
     const size = formatFileSize(file.size);
     const date = formatDate(file.created_at);
     const badgeColor = getFileBadgeColor(file);
     const icon = getFileIcon(file);
-    const fileId = file.id || '';
+    const fileId = String(file.id ?? '');
     const isImage = type === 'Image';
     const isVideo = type === 'Video';
-    const thumbnailUrl = isImage ? `/api/ddm/files/${fileId}/download?inline=true` : null;
-    const videoUrl = isVideo ? `/api/ddm/files/${fileId}/download?inline=true` : null;
-    const isChecked = selectedFileIds.has(fileId);
+    const hasThumbnail = isImage || (isVideo && file.has_thumbnail);
+    const hasPreviewClip = isVideo && file.has_preview_clip;
+
+    // Thumbnail URL: always use dedicated endpoint if possible
+    const thumbnailUrl = hasThumbnail ? `/api/ddm/files/${fileId}/thumbnail` : null;
+    // Preview clip URL: use dedicated endpoint, fallback to full file for hover
+    const previewClipUrl = hasPreviewClip ? `/api/ddm/files/${fileId}/preview-clip` : null;
+    const fullVideoUrl = isVideo ? `/api/ddm/files/${fileId}/download?inline=true` : null;
+    // For video hover, we try preview clip first, then full video
+    const videoSrcForHover = previewClipUrl || fullVideoUrl;
+
+    const isSelected = selectedFileIds.has(fileId);
+    const selectClass = selectMode ? ' select-mode' : '';
+    const selectedClass = selectMode && isSelected ? ' selected' : '';
 
     if (viewMode === 'list') {
-        // ── Redesigned Horizontal List Row ──
-        const bgStyle = thumbnailUrl
-            ? `background-image: url('${thumbnailUrl}'); background-size: cover; background-position: center;`
-            : '';
+        // ── List row with <img> thumbnail ──
+        let imgHtml = '';
+        if (thumbnailUrl) {
+            imgHtml = `<img src="${thumbnailUrl}" alt="${file.name}" class="file-list-thumb-img" loading="lazy" onerror="this.style.display='none'; this.parentElement.querySelector('.file-list-icon-circle').style.display='flex';" />`;
+        }
+
         const iconCircleStyle = thumbnailUrl
             ? 'display:none;'
             : `background-color: ${badgeColor}18; color: ${badgeColor};`;
 
         return `
-            <div class="file-list-row" data-file-id="${fileId}">
-                <div class="file-list-checkbox-cell">
-                    <label class="file-checkbox-wrapper" data-file-id="${fileId}" aria-label="Select file">
-                        <input type="checkbox" class="file-select-checkbox" data-file-id="${fileId}" ${isChecked ? 'checked' : ''}>
-                        <span class="file-checkbox-custom ${isChecked ? 'checked' : ''}">
-                            <i class="fa-solid fa-check" aria-hidden="true"></i>
-                        </span>
-                    </label>
-                </div>
-                <div class="file-list-thumb" style="${bgStyle}">
+            <div class="file-list-row${selectClass}${selectedClass}" data-file-id="${fileId}">
+                <div class="file-list-thumb">
+                    ${imgHtml}
                     <div class="file-list-icon-circle" style="${iconCircleStyle}">
                         <i class="${icon}" aria-hidden="true"></i>
                     </div>
                     ${isVideo ? `<div class="play-overlay-list"><i class="fa-solid fa-play"></i></div>` : ''}
-                    ${videoUrl ? `<video muted loop preload="none" src="${videoUrl}" style="display:none;"></video>` : ''}
+                    ${isVideo ? `<video muted loop preload="none" src="${videoSrcForHover}" style="display:none;"></video>` : ''}
                 </div>
                 <div class="file-list-info">
                     <div class="file-list-name" title="${file.name || ''}">${file.name || ''}</div>
@@ -113,32 +126,31 @@ export function fileCard(file, viewMode = 'grid', selectedFileIds = new Set()) {
         `;
     }
 
-    // ── Default Grid Card ──
-    const backgroundStyle = thumbnailUrl
-        ? `background-image: url('${thumbnailUrl}'); background-size: cover; background-position: center;`
-        : `background-color: ${badgeColor}22;`;
+    // ── Grid Card with <img> thumbnail ──
+    let imgElement = '';
+    if (thumbnailUrl) {
+        imgElement = `<img src="${thumbnailUrl}" alt="${file.name}" class="file-grid-thumb-img" loading="lazy" onerror="this.style.display='none'; this.parentElement.querySelector('.file-type-icon').style.display='flex';" />`;
+    }
 
-    const fileImageClass = thumbnailUrl ? 'file-image' : 'file-image file-image-placeholder';
+    const iconElement = !thumbnailUrl
+        ? `<div class="file-type-icon"><i class="${icon}"></i></div>`
+        : `<div class="file-type-icon" style="display:none;"><i class="${icon}"></i></div>`;
 
     const playOverlay = isVideo ? `<div class="play-overlay"><i class="fa-solid fa-play"></i></div>` : '';
-    const bigIcon = !thumbnailUrl ? `<div class="file-type-icon"><i class="${icon}"></i></div>` : '';
-    const videoElement = videoUrl
-        ? `<video muted loop preload="none" src="${videoUrl}"></video>`
+    const videoElement = isVideo
+        ? `<video muted loop preload="none" src="${videoSrcForHover}"></video>`
         : '';
 
+    const bgColor = `background-color: ${badgeColor}22;`;
+
     return `
-        <div class="file-card" data-file-id="${fileId}">
-            <div class="${fileImageClass}" style="${backgroundStyle}">
+        <div class="file-card${selectClass}${selectedClass}" data-file-id="${fileId}">
+            <div class="file-image" style="${bgColor}">
+                ${imgElement}
+                ${iconElement}
                 ${playOverlay}
-                ${bigIcon}
                 ${videoElement}
                 <span class="file-type-badge" style="background: ${badgeColor};"><i class="${icon}"></i> ${ext}</span>
-                <label class="file-checkbox-wrapper file-card-checkbox" data-file-id="${fileId}" aria-label="Select file">
-                    <input type="checkbox" class="file-select-checkbox" data-file-id="${fileId}" ${isChecked ? 'checked' : ''}>
-                    <span class="file-checkbox-custom ${isChecked ? 'checked' : ''}">
-                        <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    </span>
-                </label>
             </div>
             <div class="file-info">
                 <div class="file-title" title="${file.name || ''}">${file.name || ''}</div>

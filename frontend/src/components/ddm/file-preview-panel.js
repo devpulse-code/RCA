@@ -11,6 +11,8 @@ export default class FilePreviewPanel {
     this.close();
 
     const downloadUrl = file.downloadUrl || `/api/ddm/files/${file.id}/download`;
+    // Use inline=true so the browser renders the content instead of forcing a download
+    const previewUrl = `/api/ddm/files/${file.id}/download?inline=true`;
 
     this.overlay = document.createElement("div");
     this.overlay.className = "file-preview-overlay";
@@ -32,7 +34,7 @@ export default class FilePreviewPanel {
           </div>
         </div>
         <div class="file-preview-content">
-          ${this._renderContent(file, downloadUrl)}
+          ${this._renderContent(file, previewUrl)}
         </div>
       </div>
     `;
@@ -46,17 +48,31 @@ export default class FilePreviewPanel {
     document.addEventListener("keydown", this._escHandler);
   }
 
-  _renderContent(file, url) {
+  _renderContent(file, previewUrl) {
+    const mimeType = (file.mime_type || '').toLowerCase();
     const ext = (file.name || '').split('.').pop().toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
-      return `<img src="${url}" alt="${file.name}" class="preview-image" />`;
+
+    // --- Image preview ---
+    if (mimeType.startsWith('image/') || ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext)) {
+      return `<img src="${previewUrl}" alt="${file.name}" class="preview-image" />`;
     }
-    if (['mp4', 'webm', 'ogg'].includes(ext)) {
-      return `<video controls autoplay class="preview-video"><source src="${url}" type="video/${ext}"></video>`;
+
+    // --- Video preview ---
+    if (mimeType.startsWith('video/') || ['mp4','webm','mov','avi','ogg'].includes(ext)) {
+      return `<video controls autoplay class="preview-video"><source src="${previewUrl}" type="${mimeType || 'video/mp4'}"></video>`;
     }
-    if (ext === 'pdf') {
-      return `<iframe src="${url}#view=FitH" class="preview-iframe" width="100%" height="100%"></iframe>`;
+
+    // --- PDF preview ---
+    if (mimeType === 'application/pdf' || ext === 'pdf') {
+      return `<iframe src="${previewUrl}#view=FitH" class="preview-iframe" width="100%" height="100%"></iframe>`;
     }
+
+    // Fallback for any other image type (just in case)
+    if (mimeType.startsWith('image/')) {
+      return `<img src="${previewUrl}" alt="${file.name}" class="preview-image" />`;
+    }
+
+    // --- Unsupported type: show placeholder with download link ---
     return `
       <div class="file-preview-placeholder">
         <div class="preview-placeholder-icon">
@@ -64,7 +80,7 @@ export default class FilePreviewPanel {
         </div>
         <h3>No Preview Available</h3>
         <p>This file type cannot be previewed in the browser.</p>
-        <a href="${url}" class="preview-download-btn preview-download-btn--large" download>
+        <a href="${previewUrl}" class="preview-download-btn preview-download-btn--large" download>
           <i class="fa-solid fa-download" aria-hidden="true"></i>
           Download File
         </a>

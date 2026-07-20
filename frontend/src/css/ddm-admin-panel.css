@@ -193,6 +193,31 @@ body::before {
     background: rgba(13, 94, 140, 0.05);
 }
 
+/* ---------- ROW SELECTION (clickable rows – generic for users & files) ---------- */
+.user-row,
+.file-row {
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+}
+
+/* Left accent border + background tint for selected rows */
+.row-selected {
+    background: rgba(13, 94, 140, 0.08) !important;
+    box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+/* Distinct hover for unselected rows */
+.user-row:hover:not(.row-selected),
+.file-row:hover:not(.row-selected) {
+    background: rgba(13, 94, 140, 0.05);
+}
+
+/* Ensure text colour stays readable in selected rows */
+.row-selected td {
+    color: var(--text-primary);
+}
+
 /* ---------- FORM ELEMENTS ---------- */
 .form-input,
 .form-select,
@@ -417,4 +442,5 @@ html[data-theme="dark"] #ddm-modal{
     opacity:.45;
     cursor:not-allowed;
 }
+
 /* end of RCA/frontend/src/css/ddm-admin-panel.css */

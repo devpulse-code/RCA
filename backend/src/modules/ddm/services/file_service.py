@@ -3,7 +3,10 @@ import os
 import uuid
 import shutil
 import logging
+import subprocess
+import asyncio
 from typing import List, Optional
+from PIL import Image
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -14,12 +17,91 @@ from backend.src.config.settings import settings
 from backend.src.modules.ddm.services.audit_service import log_audit
 from backend.src.modules.ddm.services.text_extraction import extract_text_task
 from backend.src.modules.ddm.services.search_service import index_file, delete_file_index, update_file_metadata
-import asyncio
 
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = "/app/uploads"
 TEMP_UPLOAD_DIR = "/app/uploads/temp"
+THUMBNAIL_DIR = "/app/uploads/thumbnails"
+PREVIEW_DIR = "/app/uploads/previews"
+
+# Maximum dimensions for thumbnails
+THUMB_MAX_WIDTH = 300
+THUMB_MAX_HEIGHT = 200
+
+# Preview clip duration in seconds
+PREVIEW_CLIP_DURATION = 5
+PREVIEW_CLIP_WIDTH = 480   # reasonable width for preview
+
+
+def _generate_thumbnail(input_path: str, output_path: str, mime_type: str):
+    """Generate a JPEG thumbnail from an image or video file."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    try:
+        if mime_type.startswith('image/'):
+            # Use Pillow for images
+            with Image.open(input_path) as img:
+                img.thumbnail((THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT), Image.Resampling.LANCZOS)
+                # Convert to RGB if necessary (e.g., PNG with transparency)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                img.save(output_path, "JPEG", quality=85)
+            return True
+        elif mime_type.startswith('video/'):
+            # Use ffmpeg to grab a frame at 1 second
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", input_path,
+                "-ss", "00:00:01",
+                "-vframes", "1",
+                "-vf", f"scale={THUMB_MAX_WIDTH}:{THUMB_MAX_HEIGHT}:force_original_aspect_ratio=decrease,pad={THUMB_MAX_WIDTH}:{THUMB_MAX_HEIGHT}:(ow-iw)/2:(oh-ih)/2",
+                "-f", "image2",
+                output_path
+            ]
+            subprocess.run(cmd, check=True, capture_output=True, timeout=30)
+            return True
+    except Exception as e:
+        logger.error(f"Thumbnail generation failed for {input_path}: {e}")
+        return False
+
+
+def _generate_preview_clip(input_path: str, output_path: str, mime_type: str):
+    """Generate a short MP4 preview clip from a video file."""
+    if not mime_type.startswith('video/'):
+        return False
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    try:
+        # Get video duration to pick a random start time
+        probe_cmd = [
+            "ffprobe", "-v", "error", "-show_entries",
+            "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+            input_path
+        ]
+        result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True, timeout=10)
+        duration = float(result.stdout.strip())
+        # Pick a random start time, ensuring we have at least PREVIEW_CLIP_DURATION left
+        max_start = max(0, duration - PREVIEW_CLIP_DURATION)
+        import random
+        start_sec = random.uniform(0, max_start) if max_start > 0 else 0
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-ss", str(start_sec),
+            "-i", input_path,
+            "-t", str(PREVIEW_CLIP_DURATION),
+            "-vf", f"scale={PREVIEW_CLIP_WIDTH}:-2",
+            "-an",                  # no audio in preview
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "26",
+            "-movflags", "+faststart",
+            output_path
+        ]
+        subprocess.run(cmd, check=True, capture_output=True, timeout=60)
+        return True
+    except Exception as e:
+        logger.error(f"Preview clip generation failed for {input_path}: {e}")
+        return False
 
 
 async def create_file(
@@ -70,6 +152,22 @@ async def create_file(
         file_record.local_path = unique_name
         file_record.mime_type = file.content_type
         file_record.size = os.path.getsize(path)
+
+        # Generate thumbnail and preview (only for active files, i.e., admin upload)
+        if uploader_type == "admin":
+            thumbnail_name = f"{uuid.uuid4()}.jpg"
+            thumbnail_path = os.path.join(THUMBNAIL_DIR, thumbnail_name)
+            thumb_ok = await asyncio.to_thread(_generate_thumbnail, path, thumbnail_path, file.content_type)
+            if thumb_ok:
+                file_record.thumbnail_path = thumbnail_name
+
+            if file.content_type.startswith('video/'):
+                preview_name = f"{uuid.uuid4()}.mp4"
+                preview_path = os.path.join(PREVIEW_DIR, preview_name)
+                clip_ok = await asyncio.to_thread(_generate_preview_clip, path, preview_path, file.content_type)
+                if clip_ok:
+                    file_record.preview_clip_path = preview_name
+
     elif storage_type == "terabox":
         file_record.encrypted_terabox_url = encrypt_data(terabox_url)
         file_record.mime_type = "application/octet-stream"
@@ -105,7 +203,6 @@ async def update_file_record(db: AsyncSession, file_id: int, **kwargs):
             setattr(file_record, key, value)
     await db.commit()
     # Sync Meilisearch metadata
-    # Extract name, description, groups if changed
     name = kwargs.get("name", file_record.name)
     description = kwargs.get("description", file_record.description)
     group_ids = None
@@ -123,7 +220,8 @@ async def replace_file_content(
     terabox_url: Optional[str] = None,
     ip_address: Optional[str] = None,
 ):
-    """Replace the content of an existing file and update Meilisearch."""
+    """Replace the content of an existing file and update Meilisearch.
+       Regenerates thumbnail & preview if applicable."""
     file_record = await db.get(File, file_id)
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found")
@@ -138,6 +236,17 @@ async def replace_file_content(
         old_path = os.path.join(UPLOAD_DIR, file_record.local_path)
         if os.path.exists(old_path):
             os.remove(old_path)
+        # Also delete old thumbnail & preview
+        if file_record.thumbnail_path:
+            thumb_path = os.path.join(THUMBNAIL_DIR, file_record.thumbnail_path)
+            if os.path.exists(thumb_path):
+                os.remove(thumb_path)
+        if file_record.preview_clip_path:
+            prev_path = os.path.join(PREVIEW_DIR, file_record.preview_clip_path)
+            if os.path.exists(prev_path):
+                os.remove(prev_path)
+        file_record.thumbnail_path = None
+        file_record.preview_clip_path = None
 
     if new_storage == "local" and file:
         os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -150,9 +259,23 @@ async def replace_file_content(
         file_record.mime_type = file.content_type
         file_record.size = os.path.getsize(path)
         file_record.encrypted_terabox_url = None
+
+        # Re-generate thumbnail & preview
+        thumbnail_name = f"{uuid.uuid4()}.jpg"
+        thumbnail_path = os.path.join(THUMBNAIL_DIR, thumbnail_name)
+        if await asyncio.to_thread(_generate_thumbnail, path, thumbnail_path, file.content_type):
+            file_record.thumbnail_path = thumbnail_name
+        if file.content_type.startswith('video/'):
+            preview_name = f"{uuid.uuid4()}.mp4"
+            preview_path = os.path.join(PREVIEW_DIR, preview_name)
+            if await asyncio.to_thread(_generate_preview_clip, path, preview_path, file.content_type):
+                file_record.preview_clip_path = preview_name
+
     elif new_storage == "terabox" and terabox_url:
         file_record.encrypted_terabox_url = encrypt_data(terabox_url)
         file_record.local_path = None
+        file_record.thumbnail_path = None
+        file_record.preview_clip_path = None
         file_record.mime_type = "application/octet-stream"
         file_record.size = 0
     else:
@@ -163,14 +286,14 @@ async def replace_file_content(
     await db.commit()
     await db.refresh(file_record)
 
-    # Re-index full document in Meilisearch (clear old content)
+    # Re-index full document in Meilisearch
     groups_ids = [g.id for g in file_record.groups]
     await index_file(
         file_id=file_record.id,
         name=file_record.name,
         description=file_record.description,
         group_ids=groups_ids,
-        content="",  # will be re-extracted
+        content="",
     )
     if new_storage == "local":
         asyncio.create_task(extract_text_task(file_record.id))
@@ -189,6 +312,15 @@ async def delete_file(db: AsyncSession, file_id: int):
             if os.path.exists(candidate):
                 os.remove(candidate)
                 break
+        # Delete thumbnail & preview
+        if file_record.thumbnail_path:
+            thumb = os.path.join(THUMBNAIL_DIR, file_record.thumbnail_path)
+            if os.path.exists(thumb):
+                os.remove(thumb)
+        if file_record.preview_clip_path:
+            prev = os.path.join(PREVIEW_DIR, file_record.preview_clip_path)
+            if os.path.exists(prev):
+                os.remove(prev)
     await db.delete(file_record)
     await db.commit()
     # Remove from Meilisearch
@@ -196,7 +328,8 @@ async def delete_file(db: AsyncSession, file_id: int):
 
 
 async def approve_upload_request(db: AsyncSession, file_id: int):
-    """Move a pending user upload from temp to permanent, mark active, and index."""
+    """Move a pending user upload from temp to permanent, mark active, and index.
+       Also generate thumbnail/preview after moving."""
     file_record = await db.get(File, file_id)
     if not file_record or file_record.status != "pending":
         raise HTTPException(status_code=404, detail="Pending upload not found")
@@ -211,6 +344,19 @@ async def approve_upload_request(db: AsyncSession, file_id: int):
         shutil.move(temp_path, new_path)
         file_record.local_path = new_name
         file_record.status = "active"
+
+        # Generate thumbnail & preview from new permanent file
+        mime = file_record.mime_type or "application/octet-stream"
+        thumbnail_name = f"{uuid.uuid4()}.jpg"
+        thumbnail_path = os.path.join(THUMBNAIL_DIR, thumbnail_name)
+        if await asyncio.to_thread(_generate_thumbnail, new_path, thumbnail_path, mime):
+            file_record.thumbnail_path = thumbnail_name
+        if mime.startswith('video/'):
+            preview_name = f"{uuid.uuid4()}.mp4"
+            preview_path = os.path.join(PREVIEW_DIR, preview_name)
+            if await asyncio.to_thread(_generate_preview_clip, new_path, preview_path, mime):
+                file_record.preview_clip_path = preview_name
+
         await db.commit()
         # Index into Meilisearch
         groups_ids = [g.id for g in file_record.groups]

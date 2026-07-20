@@ -17,6 +17,7 @@ export class FileTable {
     try {
       const data = await AdminService.getFiles();
       this.files = Array.isArray(data) ? data : [];
+      this.selected.clear();
       this.render();
     } catch (e) {
       showToast(e.message, "error");
@@ -27,19 +28,30 @@ export class FileTable {
 
   render() {
     if (!this.container) return;
+    const selectedCount = this.selected.size;
+    const totalCount = this.files.length;
+    const allSelected = selectedCount === totalCount && totalCount > 0;
+
     let html = `
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-100">Files</h2>
         <div>
           <button id="btn-upload-file" class="btn btn-success mr-2">Upload File</button>
-          <button id="btn-bulk-delete" class="btn btn-danger btn-sm" disabled>Delete Selected</button>
+          <button id="btn-bulk-delete" class="btn btn-danger btn-sm" ${selectedCount === 0 ? "disabled" : ""}>Delete Selected</button>
         </div>
+      </div>
+      <div class="flex items-center gap-2 mb-4">
+        <button id="btn-select-all-files" class="btn btn-secondary btn-sm">
+          ${allSelected ? "Deselect All" : "Select All"}
+        </button>
+        <span id="file-selection-count" class="text-sm text-muted">
+          ${selectedCount > 0 ? `${selectedCount} selected` : ""}
+        </span>
       </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th><input type="checkbox" id="select-all-files"></th>
               <th>Name</th>
               <th>Type</th>
               <th>Groups</th>
@@ -49,20 +61,22 @@ export class FileTable {
             </tr>
           </thead>
           <tbody>
-            ${this.files.map(f => `
-              <tr data-id="${f.id}">
-                <td><input type="checkbox" class="file-checkbox" value="${f.id}"></td>
-                <td>${f.name}</td>
-                <td>${f.storage_type}</td>
-                <td>${(f.groups || []).join(', ')}</td>
-                <td>${f.size ? (f.size/1024).toFixed(1)+' KB' : ''}</td>
-                <td>${f.status}</td>
-                <td>
-                  <button class="preview-file-btn btn btn-sm btn-info" data-id="${f.id}">Preview</button>
-                  <button class="delete-file-btn btn btn-sm btn-danger" data-id="${f.id}">Delete</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${this.files.map(f => {
+              const isSelected = this.selected.has(f.id);
+              return `
+                <tr data-id="${f.id}" class="file-row ${isSelected ? "row-selected" : ""}">
+                  <td>${f.name}</td>
+                  <td>${f.storage_type}</td>
+                  <td>${(f.groups || []).join(', ')}</td>
+                  <td>${f.size ? (f.size/1024).toFixed(1)+' KB' : ''}</td>
+                  <td>${f.status}</td>
+                  <td>
+                    <button class="preview-file-btn btn btn-sm btn-info" data-id="${f.id}">Preview</button>
+                    <button class="delete-file-btn btn btn-sm btn-danger" data-id="${f.id}">Delete</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -73,26 +87,35 @@ export class FileTable {
 
   attachEvents() {
     document.getElementById("btn-upload-file")?.addEventListener("click", () => this.showUploadModal());
-    document.getElementById("select-all-files")?.addEventListener("change", (e) => {
-      this.container.querySelectorAll(".file-checkbox").forEach(cb => cb.checked = e.target.checked);
-      this.updateSelection();
-    });
-    this.container.querySelectorAll(".file-checkbox").forEach(cb => cb.addEventListener("change", () => this.updateSelection()));
+    document.getElementById("btn-bulk-delete")?.addEventListener("click", () => this.bulkDelete());
+    document.getElementById("btn-select-all-files")?.addEventListener("click", () => this.toggleSelectAll());
 
+    // Row click for selection
+    this.container.querySelectorAll(".file-row").forEach(row => {
+      row.addEventListener("click", (e) => {
+        if (e.target.closest("button") || e.target.closest("a")) return;
+        const id = parseInt(row.dataset.id);
+        this.toggleRowSelection(id);
+      });
+    });
+
+    // Preview button
     this.container.querySelectorAll(".preview-file-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const id = parseInt(btn.dataset.id);
         const file = this.files.find(f => f.id == id);
         if (file) {
-          // Use the download URL; the preview panel will handle it
           const downloadUrl = `/api/ddm/files/${file.id}/download`;
           this.previewPanel.open({ id: file.id, name: file.name, downloadUrl });
         }
       });
     });
 
+    // Delete button (single)
     this.container.querySelectorAll(".delete-file-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const id = parseInt(btn.dataset.id);
         const file = this.files.find(f => f.id == id);
         confirmModal({
@@ -112,40 +135,81 @@ export class FileTable {
         });
       });
     });
-
-    document.getElementById("btn-bulk-delete")?.addEventListener("click", () => {
-      const ids = Array.from(this.selected);
-      if (ids.length === 0) return;
-      confirmModal({
-        title: "Bulk Delete Files",
-        message: `Are you sure you want to permanently delete ${ids.length} selected files?`,
-        confirmText: "Delete All",
-        danger: true,
-        onConfirm: async () => {
-          try {
-            await AdminService.bulkDeleteFiles(ids);
-            showToast("Files deleted", "success");
-            this.selected.clear();
-            this.load();
-          } catch (e) {
-            showToast(e.message, "error");
-          }
-        },
-      });
-    });
   }
 
-  updateSelection() {
-    this.selected.clear();
-    this.container.querySelectorAll(".file-checkbox:checked").forEach(cb => this.selected.add(parseInt(cb.value)));
+  toggleRowSelection(id) {
+    if (this.selected.has(id)) {
+      this.selected.delete(id);
+    } else {
+      this.selected.add(id);
+    }
+    this.updateVisuals();
+  }
+
+  toggleSelectAll() {
+    const allIds = this.files.map(f => f.id);
+    const allSelected = allIds.every(id => this.selected.has(id));
+    if (allSelected) {
+      this.selected.clear();
+    } else {
+      allIds.forEach(id => this.selected.add(id));
+    }
+    this.updateVisuals();
+  }
+
+  updateVisuals() {
+    // Update selected class on each row
+    this.container.querySelectorAll(".file-row").forEach(row => {
+      const id = parseInt(row.dataset.id);
+      row.classList.toggle("row-selected", this.selected.has(id));
+    });
+
+    // Update toolbar elements
+    const selectedCount = this.selected.size;
+    const totalCount = this.files.length;
+    const allSelected = selectedCount === totalCount && totalCount > 0;
+
+    const selectAllBtn = document.getElementById("btn-select-all-files");
+    if (selectAllBtn) {
+      selectAllBtn.textContent = allSelected ? "Deselect All" : "Select All";
+    }
+
+    const countSpan = document.getElementById("file-selection-count");
+    if (countSpan) {
+      countSpan.textContent = selectedCount > 0 ? `${selectedCount} selected` : "";
+    }
+
     const bulkBtn = document.getElementById("btn-bulk-delete");
-    if (bulkBtn) bulkBtn.disabled = this.selected.size === 0;
+    if (bulkBtn) {
+      bulkBtn.disabled = selectedCount === 0;
+    }
+  }
+
+  async bulkDelete() {
+    const ids = Array.from(this.selected);
+    if (ids.length === 0) return;
+    confirmModal({
+      title: "Bulk Delete Files",
+      message: `Are you sure you want to permanently delete ${ids.length} selected files?`,
+      confirmText: "Delete All",
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await AdminService.bulkDeleteFiles(ids);
+          showToast("Files deleted", "success");
+          this.selected.clear();
+          this.load();
+        } catch (e) {
+          showToast(e.message, "error");
+        }
+      },
+    });
   }
 
   async showUploadModal() {
     let groups = [];
     try {
-      groups = await AdminService.fetchDivisions();   // now divisions
+      groups = await AdminService.fetchDivisions();
     } catch (e) {}
 
     const groupOptions = groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');

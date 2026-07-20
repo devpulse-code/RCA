@@ -19,7 +19,6 @@ async def list_user_files(
 ):
     user_group_ids = [g.id for g in user.groups]
 
-    # Eagerly load the groups relationship to avoid MissingGreenlet
     result = await db.execute(
         select(File)
         .where(File.status == "active")
@@ -30,7 +29,6 @@ async def list_user_files(
     out = []
     for f in all_files:
         file_group_ids = [g.id for g in f.groups]
-        # If file has no groups, skip (must be assigned to at least one group)
         if file_group_ids and not any(g in file_group_ids for g in user_group_ids):
             continue
         out.append(FileOut(
@@ -46,6 +44,8 @@ async def list_user_files(
             status=f.status,
             created_at=str(f.created_at),
             updated_at=str(f.updated_at),
+            has_thumbnail=bool(f.thumbnail_path),
+            has_preview_clip=bool(f.preview_clip_path),
         ))
     return out
 # end of backend/src/modules/ddm/api/files/list.py

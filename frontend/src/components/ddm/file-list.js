@@ -5,16 +5,32 @@ import { showToast } from "../ui/toast.js";
 import { uiStore } from "../../stores/ui-store.js";
 
 export class FileList {
-  constructor(containerId) {
+  constructor(containerId, loadMoreButtonId = 'load-more-btn') {
     this.container = document.getElementById(containerId);
-    this.files = [];
+    this.loadMoreBtn = document.getElementById(loadMoreButtonId);
+    this.allFiles = [];
+    this.visibleCount = 10;
+    this.pageSize = 10;
     this.selectedFileIds = new Set();
     this.bulkBar = null;
     this._createBulkBar();
+
     this.load();
-    uiStore.onViewChange((view) => this.render(view));
-    uiStore.onFilterChange(() => this.render(uiStore.viewMode));
-    uiStore.onTypeChange(() => this.render(uiStore.viewMode));
+
+    uiStore.onViewChange((view) => { this.visibleCount = this.pageSize; this.render(view); });
+    uiStore.onFilterChange(() => { this.visibleCount = this.pageSize; this.render(uiStore.viewMode); });
+    uiStore.onTypeChange(() => { this.visibleCount = this.pageSize; this.render(uiStore.viewMode); });
+    uiStore.onSelectModeChange(() => {
+      if (!uiStore.selectMode) {
+        this.selectedFileIds.clear();
+      }
+      this.render(uiStore.viewMode);
+    });
+
+    if (this.loadMoreBtn) {
+      this.loadMoreBtn.addEventListener('click', () => this.loadMore());
+    }
+
     this._setupDelegation();
   }
 
@@ -27,27 +43,28 @@ export class FileList {
           return groups.some(g => g.id == uiStore.groupFilter || g.name === uiStore.groupFilter);
         });
       }
-      this.files = Array.isArray(raw) ? raw : [];
+      this.allFiles = Array.isArray(raw) ? raw : [];
+      this.visibleCount = this.pageSize;
     } catch (e) {
       try { showToast(e.message || "Failed to load files", "error"); } catch (_) {}
-      this.files = null;
+      this.allFiles = null;
       console.error("File fetch error:", e);
     }
     this.render(uiStore.viewMode);
   }
 
   setFiles(files) {
-    this.files = Array.isArray(files) ? files : [];
+    this.allFiles = Array.isArray(files) ? files : [];
     this.selectedFileIds.clear();
+    this.visibleCount = this.pageSize;
     this.render(uiStore.viewMode);
   }
 
-   _filterByType(files) {
+  _filterByType(files) {
     const type = uiStore.typeFilter;
     if (!type || type === 'all') return files;
 
     return files.filter(file => {
-      // 1. Try MIME type first (more reliable)
       const mime = (file.mime_type || '').toLowerCase();
       if (type === 'image' && mime.startsWith('image/')) return true;
       if (type === 'video' && mime.startsWith('video/')) return true;
@@ -60,7 +77,6 @@ export class FileList {
         mime.includes('rtf')
       )) return true;
 
-      // 2. Fallback: check file extension from name
       const ext = (file.name || '').split('.').pop().toLowerCase();
       if (type === 'image') return ['jpg','jpeg','png','gif','bmp','webp','svg'].includes(ext);
       if (type === 'video') return ['mp4','webm','mov','avi'].includes(ext);
@@ -68,21 +84,31 @@ export class FileList {
       return false;
     });
   }
+
   render(viewMode = uiStore.viewMode) {
     if (!this.container) return;
-    if (this.files === null) {
+    if (this.allFiles === null) {
       this.container.innerHTML = `<p style="color: var(--danger);">Could not load files. Please refresh.</p>`;
-      this._updateBulkBar();
-      return;
-    }
-    const filtered = this._filterByType(this.files);
-    if (filtered.length === 0) {
-      this.container.innerHTML = `<p style="color: var(--text-muted);">No files available.</p>`;
+      this._updateLoadMoreBtn(false);
       this._updateBulkBar();
       return;
     }
 
-    const cardsHTML = filtered.map(file => fileCard(file, viewMode, this.selectedFileIds)).join('');
+    const filtered = this._filterByType(this.allFiles);
+    if (filtered.length === 0) {
+      this.container.innerHTML = `<p style="color: var(--text-muted);">No files available.</p>`;
+      this._updateLoadMoreBtn(false);
+      this._updateBulkBar();
+      return;
+    }
+
+    const total = filtered.length;
+    const showCount = Math.min(this.visibleCount, total);
+    const visibleFiles = filtered.slice(0, showCount);
+
+    const cardsHTML = visibleFiles.map(file =>
+      fileCard(file, viewMode, this.selectedFileIds, uiStore.selectMode)
+    ).join('');
 
     if (viewMode === 'grid') {
       this.container.innerHTML = `<div class="file-grid">${cardsHTML}</div>`;
@@ -92,10 +118,27 @@ export class FileList {
 
     this._initVideoHovers();
     this._initListVideoHovers();
+    this._updateLoadMoreBtn(showCount < total);
     this._updateBulkBar();
   }
 
-  /* ── Bulk Download Bar ── */
+  loadMore() {
+    this.visibleCount += this.pageSize;
+    this.render(uiStore.viewMode);
+  }
+
+  _updateLoadMoreBtn(show) {
+    if (this.loadMoreBtn) {
+      if (show) {
+        this.loadMoreBtn.classList.remove('hidden');
+        this.loadMoreBtn.disabled = false;
+      } else {
+        this.loadMoreBtn.classList.add('hidden');
+        this.loadMoreBtn.disabled = true;
+      }
+    }
+  }
+
   _createBulkBar() {
     this.bulkBar = document.createElement('div');
     this.bulkBar.id = 'bulk-action-bar';
@@ -161,7 +204,6 @@ export class FileList {
     this.render(uiStore.viewMode);
   }
 
-  /* ── Video Hovers ── */
   _initVideoHovers() {
     const wrappers = this.container.querySelectorAll('.file-image');
     wrappers.forEach(wrapper => {
@@ -249,55 +291,75 @@ export class FileList {
     });
   }
 
-  /* ── Event Delegation ── */
   _setupDelegation() {
     this.container.addEventListener('click', (e) => {
-      // Handle checkbox clicks
-      const checkboxWrapper = e.target.closest('.file-checkbox-wrapper');
-      if (checkboxWrapper) {
-        e.preventDefault(); // stop native checkbox toggle
-        e.stopPropagation();
-        const fileId = checkboxWrapper.dataset.fileId;
-        if (fileId) this._toggleFileSelection(fileId);
+      if (uiStore.selectMode) {
+        const card = e.target.closest('.file-card');
+        const row = e.target.closest('.file-list-row');
+        const targetElement = card || row;
+        if (targetElement) {
+          const fileId = targetElement.dataset.fileId;
+          if (fileId) {
+            if (e.target.closest('button')) return;
+            this._toggleFileSelection(fileId);
+            return;
+          }
+        }
         return;
       }
 
       const target = e.target.closest('button') || e.target.closest('.kebab-menu');
-      if (!target) return;
+      if (target) {
+        const fileId = target.dataset.fileId || target.parentElement?.dataset.fileId;
+        const file = this.allFiles.find(f => f.id == fileId);
+        if (!file) return;
 
-      const fileId = target.dataset.fileId || target.parentElement.dataset.fileId;
-      const file = this.files.find(f => f.id == fileId);
-      if (!file) return;
-
-      if (target.classList.contains('kebab-menu') || (target.tagName === 'I' && target.parentElement.classList.contains('kebab-menu'))) {
+        if (target.classList.contains('kebab-menu') || (target.tagName === 'I' && target.parentElement?.classList.contains('kebab-menu'))) {
           const dropdown = this.container.querySelector(`.file-actions-dropdown[data-file-id="${fileId}"]`);
           this.container.querySelectorAll('.file-actions-dropdown').forEach(d => d.classList.remove('open'));
           if (dropdown) dropdown.classList.toggle('open');
           return;
+        }
+
+        if (target.classList.contains('action-preview')) {
+          if (window.filePreviewPanel) {
+            window.filePreviewPanel.open(file);
+          } else {
+            showToast('Preview panel not loaded', 'warning');
+          }
+        } else if (target.classList.contains('action-download')) {
+          window.open(`/api/ddm/files/${fileId}/download`, '_blank');
+        } else if (target.classList.contains('action-ai')) {
+          if (window.aiChatPanel) {
+            window.aiChatPanel.setFileContext(file);
+            const panel = document.getElementById("ai-chat-panel");
+            const toggle = document.getElementById("ai-chat-toggle");
+            if (panel && panel.classList.contains("hidden") && toggle) toggle.click();
+          }
+        }
+        return;
       }
 
-      if (target.classList.contains('action-preview')) {
+      const card = e.target.closest('.file-card');
+      const row = e.target.closest('.file-list-row');
+      const targetElement = card || row;
+      if (targetElement) {
+        const fileId = targetElement.dataset.fileId;
+        const file = this.allFiles.find(f => f.id == fileId);
+        if (file) {
           if (window.filePreviewPanel) {
-              window.filePreviewPanel.open(file);
+            window.filePreviewPanel.open(file);
           } else {
-              showToast('Preview panel not loaded', 'warning');
+            showToast('Preview panel not loaded', 'warning');
           }
-      } else if (target.classList.contains('action-download')) {
-          window.open(`/api/ddm/files/${fileId}/download`, '_blank');
-      } else if (target.classList.contains('action-ai')) {
-          if (window.aiChatPanel) {
-              window.aiChatPanel.setFileContext(file);
-              const panel = document.getElementById("ai-chat-panel");
-              const toggle = document.getElementById("ai-chat-toggle");
-              if (panel && panel.classList.contains("hidden") && toggle) toggle.click();
-          }
+        }
       }
     });
 
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.kebab-menu') && !e.target.closest('.file-actions-dropdown')) {
-            this.container.querySelectorAll('.file-actions-dropdown').forEach(d => d.classList.remove('open'));
-        }
+      if (!e.target.closest('.kebab-menu') && !e.target.closest('.file-actions-dropdown')) {
+        this.container.querySelectorAll('.file-actions-dropdown').forEach(d => d.classList.remove('open'));
+      }
     });
   }
 }
